@@ -83,12 +83,15 @@ impl<T, M, C> Entity<T, M, C> {
 }
 
 /// Default impl for Entity.
-// impl<T: Render, M, C> Render for Entity<T, M, C> {
-//     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-//         let data = self.data.try_lock().unwrap();
-//         data.render(ctx)
-//     }
-// }
+impl<T, M, C> Render for Entity<T, M, C>
+where
+    T: RemoteRender<C>,
+{
+    fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
+        let data = self.data.try_lock().unwrap();
+        data.remote_render(ctx, self.self_tx.clone())
+    }
+}
 
 /// Component depends on associated msg to trigger mutation.
 pub trait Component {
@@ -98,6 +101,14 @@ pub trait Component {
     /// handle data updates, if needs rerender, will send true to the root queue.
     fn update(&mut self, msg: Self::Msg) -> bool;
     fn update_el(&mut self, msg: Self::RootMsg) -> bool;
+}
+
+pub trait RemoteRender<M> {
+    fn remote_render<'a>(
+        &self,
+        ctx: &mut RenderContext<'a>,
+        tx: mpsc::UnboundedSender<M>,
+    ) -> Node<'a>;
 }
 
 impl<T, M, C> Component for Entity<T, M, C>
