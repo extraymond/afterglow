@@ -2,9 +2,8 @@ use dodrio::{Render, Vdom};
 use futures::{
     channel::mpsc, compat::Future01CompatExt, lock::Mutex, sink::SinkExt, stream::StreamExt,
 };
-use log::info;
+
 use std::rc::Rc;
-use wasm_bindgen;
 use wasm_bindgen_futures::futures_0_3::spawn_local;
 /// Top level entity.
 pub struct Entity<T, M, C> {
