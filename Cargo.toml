@@ -9,13 +9,16 @@ description = "Extension that helps(me at least) increasing productivity when de
 
 [dependencies]
 wasm-bindgen = { version = "0.2.49", features=["serde"]}
-dodrio = { git= "https://github.com/fitzgen/dodrio", features = ["log"]}
 wasm-bindgen-futures = { version = "0.3.25", features = ["futures_0_3"]}
 futures-preview = { version = "0.3.0-alpha.18", features = ["async-await", "nightly", "compat"]}
 typed-html = { version = "0.2.1", features = ["dodrio_macro"]}
 js-sys = "0.3.27"
 log = "0.4.8"
 console_log = "0.1.2"
+
+[dependencies.dodrio]
+git = "https://github.com/fitzgen/dodrio.git"
+features = ["log", "serde"]
 
 [dependencies.web-sys]
 version = "0.3.5"
