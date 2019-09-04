@@ -83,12 +83,12 @@ impl<T, M, C> Entity<T, M, C> {
 }
 
 /// Default impl for Entity.
-impl<T: Render, M, C> Render for Entity<T, M, C> {
-    fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-        let data = self.data.try_lock().unwrap();
-        data.render(ctx)
-    }
-}
+// impl<T: Render, M, C> Render for Entity<T, M, C> {
+//     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
+//         let data = self.data.try_lock().unwrap();
+//         data.render(ctx)
+//     }
+// }
 
 /// Component depends on associated msg to trigger mutation.
 pub trait Component {
