@@ -85,11 +85,11 @@ impl<T, M, C> Entity<T, M, C> {
 /// Default impl for Entity.
 impl<T, M, C> DodRender for Entity<T, M, C>
 where
-    T: RemoteRender<M, C>,
+    T: Render<M, C>,
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let data = self.data.try_lock().unwrap();
-        data.remote_render(ctx, self.data_tx.clone(), self.self_tx.clone())
+        data.render(ctx, self.data_tx.clone(), self.self_tx.clone())
     }
 }
 
@@ -103,8 +103,8 @@ pub trait Component {
     fn update_el(&mut self, msg: Self::RootMsg) -> bool;
 }
 
-pub trait RemoteRender<M, C> {
-    fn remote_render<'a>(
+pub trait Render<M, C> {
+    fn render<'a>(
         &self,
         ctx: &mut RenderContext<'a>,
         self_tx: mpsc::UnboundedSender<M>,
