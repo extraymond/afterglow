@@ -1,10 +1,11 @@
-use dodrio::{Render, Vdom};
+use dodrio::{Render as DodRender, Vdom};
 use futures::{
     channel::mpsc, compat::Future01CompatExt, lock::Mutex, sink::SinkExt, stream::StreamExt,
 };
-
 use std::rc::Rc;
 use wasm_bindgen_futures::futures_0_3::spawn_local;
+pub trait Render = DodRender;
+
 /// Top level entity.
 pub struct Entity<T, M, C> {
     /// send true to let vdom trigger re-render.
