@@ -1,6 +1,6 @@
 use dodrio::Node;
 use dodrio::RenderContext;
-use dodrio::{Render, Vdom};
+use dodrio::{Render as DodRender, Vdom};
 use futures::{
     channel::mpsc, compat::Future01CompatExt, lock::Mutex, sink::SinkExt, stream::StreamExt,
 };
@@ -83,13 +83,13 @@ impl<T, M, C> Entity<T, M, C> {
 }
 
 /// Default impl for Entity.
-impl<T, M, C> Render for Entity<T, M, C>
+impl<T, M, C> DodRender for Entity<T, M, C>
 where
-    T: RemoteRender<C>,
+    T: RemoteRender<M, C>,
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let data = self.data.try_lock().unwrap();
-        data.remote_render(ctx, self.self_tx.clone())
+        data.remote_render(ctx, self.data_tx.clone(), self.self_tx.clone())
     }
 }
 
@@ -103,11 +103,12 @@ pub trait Component {
     fn update_el(&mut self, msg: Self::RootMsg) -> bool;
 }
 
-pub trait RemoteRender<M> {
+pub trait RemoteRender<M, C> {
     fn remote_render<'a>(
         &self,
         ctx: &mut RenderContext<'a>,
-        tx: mpsc::UnboundedSender<M>,
+        self_tx: mpsc::UnboundedSender<M>,
+        root_tx: mpsc::UnboundedSender<C>,
     ) -> Node<'a>;
 }
 
@@ -152,7 +153,7 @@ impl MessageHub {
     /// from root el.
     pub fn bind_root_el<T, M, C>(&mut self, data: T)
     where
-        Entity<T, M, C>: Render,
+        Entity<T, M, C>: DodRender,
         T: 'static + Component<Msg = M, RootMsg = C>,
         M: 'static,
         C: 'static,
