@@ -1,3 +1,5 @@
+use dodrio::Node;
+use dodrio::RenderContext;
 use dodrio::{Render, Vdom};
 use futures::{
     channel::mpsc, compat::Future01CompatExt, lock::Mutex, sink::SinkExt, stream::StreamExt,
@@ -5,7 +7,6 @@ use futures::{
 
 use std::rc::Rc;
 use wasm_bindgen_futures::futures_0_3::spawn_local;
-
 
 /// Top level entity.
 pub struct Entity<T, M, C> {
@@ -78,6 +79,14 @@ impl<T, M, C> Entity<T, M, C> {
             }
         };
         spawn_local(self_to_el);
+    }
+}
+
+/// Default impl for Entity.
+impl<T: Render, M, C> Render for Entity<T, M, C> {
+    fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
+        let data = self.data.try_lock().unwrap();
+        data.render(ctx)
     }
 }
 
