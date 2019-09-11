@@ -11,7 +11,7 @@ use wasm_bindgen_futures::futures_0_3::spawn_local;
 /// Top level entity.
 pub struct Entity<T, M, C> {
     /// send true to let vdom trigger re-render.
-    root_tx: mpsc::UnboundedSender<bool>,
+    pub root_tx: mpsc::UnboundedSender<bool>,
     /// contained data, may or may not be a entity.
     pub data: Rc<Mutex<T>>,
     /// send msg to trigger data mutation.
