@@ -11,7 +11,7 @@ use wasm_bindgen_futures::futures_0_3::spawn_local;
 /// Top level entity.
 pub struct Entity<T, M, C> {
     /// send true to let vdom trigger re-render.
-    pub root_tx: mpsc::UnboundedSender<bool>,
+    root_tx: mpsc::UnboundedSender<bool>,
     /// contained data, may or may not be a entity.
     pub data: Rc<Mutex<T>>,
     /// send msg to trigger data mutation.
@@ -89,7 +89,7 @@ where
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let data = self.data.try_lock().unwrap();
-        data.render(ctx, self.data_tx.clone(), self.self_tx.clone())
+        data.render(ctx, self.data_tx.clone(), self.self_tx.clone(), self.root_tx.clone())
     }
 }
 
@@ -107,8 +107,9 @@ pub trait Render<M, C> {
     fn render<'a>(
         &self,
         ctx: &mut RenderContext<'a>,
-        self_tx: mpsc::UnboundedSender<M>,
-        root_tx: mpsc::UnboundedSender<C>,
+        data_tx: mpsc::UnboundedSender<M>,
+        self_tx: mpsc::UnboundedSender<C>,
+        root_tx: mpsc::UnboundedSender<bool>,
     ) -> Node<'a>;
 }
 
