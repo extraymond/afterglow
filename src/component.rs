@@ -225,9 +225,14 @@ impl MessageHub {
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
                 if msg {
-                    hub_tx.send(HubMsg::Render).await.unwrap();
+                    if !hub_tx.is_closed() {
+                        hub_tx.send(HubMsg::Render).await.unwrap();
+                    } else {
+                        break;
+                    }
                 }
             }
+            hub_tx.disconnect();
         };
         spawn_local(el_to_root);
     }
