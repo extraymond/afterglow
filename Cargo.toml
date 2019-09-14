@@ -9,7 +9,7 @@ description = "Extension that helps(me at least) increasing productivity when de
 
 [dependencies]
 wasm-bindgen = { version = "0.2.50", features = ["serde"] }
-dodrio = { git= "https://github.com/fitzgen/dodrio", features = ["log", "serde"]}
+dodrio = { git= "https://github.com/fitzgen/dodrio" }
 futures-preview = { version = "0.3.0-alpha.18", features = ["async-await", "nightly", "compat"]}
 wasm-bindgen-futures = { version = "0.3.27", features = ["futures_0_3"] }
 typed-html = { version = "0.2.1", features = ["dodrio_macro"] }
