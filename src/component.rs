@@ -61,10 +61,11 @@ impl<T, M, C> Entity<T, M, C> {
         let data_to_el = async move {
             while let Some(msg) = data_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update(msg) {
-                    root_tx.send(true).await.unwrap();
+                if data.update(msg) && root_tx.send(true).await.is_err() {
+                    break;
                 }
             }
+            root_tx.disconnect();
         };
         spawn_local(data_to_el);
     }
@@ -81,10 +82,11 @@ impl<T, M, C> Entity<T, M, C> {
         let self_to_el = async move {
             while let Some(msg) = self_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update_el(msg) {
-                    root_tx.send(true).await.unwrap();
+                if data.update_el(msg) && root_tx.send(true).await.is_err() {
+                    break;
                 }
             }
+            root_tx.disconnect();
         };
         spawn_local(self_to_el);
     }
