@@ -19,13 +19,13 @@ pub struct Entity<T, M, C> {
     pub self_tx: mpsc::UnboundedSender<C>,
 }
 
-impl<T, M, C> Drop for Entity<T, M, C> {
-    fn drop(&mut self) {
-        self.data_tx.close_channel();
-        self.self_tx.close_channel();
-        self.root_tx.close_channel();
-    }
-}
+// impl<T, M, C> Drop for Entity<T, M, C> {
+//     fn drop(&mut self) {
+//         self.data_tx.close_channel();
+//         self.self_tx.close_channel();
+//         self.root_tx.close_channel();
+//     }
+// }
 
 impl<T, M, C> Entity<T, M, C> {
     /// creata a  entity that contains the data, and allow root to listen to whether to re-render.
