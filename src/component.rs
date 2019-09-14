@@ -221,13 +221,11 @@ impl MessageHub {
 
     /// listen for re-render signals from entity, only re-render if necessary.
     pub fn mount_el_rx(&mut self, mut root_rx: mpsc::UnboundedReceiver<bool>) {
-        // let vdom = self.vdom.take().unwrap();
         let mut hub_tx = self.hub_tx.clone();
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
                 if msg {
                     hub_tx.send(HubMsg::Render).await.unwrap();
-                    // vdom.weak().render().compat().await.unwrap();
                 }
             }
         };
@@ -241,9 +239,13 @@ impl MessageHub {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
+                        log::info!("try to render");
                         vdom.weak().render().compat().await.unwrap();
                     }
-                    HubMsg::Drop => break,
+                    HubMsg::Drop => {
+                        log::info!("try to drop it");
+                        // break
+                    }
                 }
             }
             vdom.unmount();
