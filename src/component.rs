@@ -159,7 +159,7 @@ where
 #[derive(Default)]
 pub struct MessageHub {
     /// sharable vdom, so we can have multiple listener that triggers re-render.
-    pub vdom: Option<Rc<Mutex<Vdom>>>,
+    pub vdom: Option<Vdom>,
 }
 
 impl MessageHub {
@@ -204,16 +204,15 @@ impl MessageHub {
 
     /// bind vdom to the hub, so we can trigger re-render directly.
     pub fn bind_vdom(&mut self, vdom: Vdom) {
-        self.vdom = Some(Rc::new(Mutex::new(vdom)));
+        self.vdom = Some(vdom);
     }
 
     /// listen for re-render signals from entity, only re-render if necessary.
     pub fn mount_el_rx(&mut self, mut root_rx: mpsc::UnboundedReceiver<bool>) {
-        let vdom_handle = self.vdom.clone().unwrap();
+        let vdom = self.vdom.take().unwrap();
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
                 if msg {
-                    let vdom = vdom_handle.lock().await;
                     vdom.weak().render().compat().await.unwrap();
                 }
             }
