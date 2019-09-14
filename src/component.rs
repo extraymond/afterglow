@@ -159,7 +159,7 @@ where
 #[derive(Default)]
 pub struct MessageHub {
     /// sharable vdom, so we can have multiple listener that triggers re-render.
-    vdom: Option<Rc<Mutex<Vdom>>>,
+    pub vdom: Option<Rc<Mutex<Vdom>>>,
 }
 
 impl MessageHub {
