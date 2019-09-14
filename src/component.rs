@@ -247,8 +247,12 @@ impl MessageHub {
                     }
                 }
             }
+            log::info!("drop rx");
             drop(hub_rx);
-            vdom.unmount();
+            log::info!("unmount root");
+            let root = vdom.unmount();
+            log::info!("drop root");
+            drop(root);
         };
         spawn_local(el_to_root);
     }
