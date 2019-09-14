@@ -239,15 +239,15 @@ impl MessageHub {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
-                        log::info!("try to render");
                         vdom.weak().render().compat().await.unwrap();
                     }
                     HubMsg::Drop => {
-                        log::info!("try to drop it");
-                        // break
+                        hub_rx.close();
+                        break;
                     }
                 }
             }
+            drop(hub_rx);
             vdom.unmount();
         };
         spawn_local(el_to_root);
