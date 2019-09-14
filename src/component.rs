@@ -19,6 +19,12 @@ pub struct Entity<T, M, C> {
     pub self_tx: mpsc::UnboundedSender<C>,
 }
 
+impl<T, M, C> Drop for Entity<T, M, C> {
+    fn drop(&mut self) {
+        log::info!("entity dropped");
+    }
+}
+
 impl<T, M, C> Entity<T, M, C> {
     /// creata a  entity that contains the data, and allow root to listen to whether to re-render.
     pub fn new(data: T, root_tx: mpsc::UnboundedSender<bool>) -> Entity<T, M, C>
@@ -89,7 +95,12 @@ where
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let data = self.data.try_lock().unwrap();
-        data.render(ctx, self.data_tx.clone(), self.self_tx.clone(), self.root_tx.clone())
+        data.render(
+            ctx,
+            self.data_tx.clone(),
+            self.self_tx.clone(),
+            self.root_tx.clone(),
+        )
     }
 }
 
