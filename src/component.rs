@@ -216,6 +216,8 @@ impl MessageHub {
                     vdom.weak().render().compat().await.unwrap();
                 }
             }
+
+            log::info!("hello");
         };
         spawn_local(el_to_root);
     }
