@@ -224,12 +224,8 @@ impl MessageHub {
         let mut hub_tx = self.hub_tx.clone();
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
-                if msg {
-                    if !hub_tx.is_closed() {
-                        hub_tx.send(HubMsg::Render).await.unwrap();
-                    } else {
-                        break;
-                    }
+                if msg && hub_tx.send(HubMsg::Render).await.is_err() {
+                    break;
                 }
             }
             hub_tx.disconnect();
