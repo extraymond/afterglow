@@ -235,7 +235,7 @@ impl MessageHub {
     pub fn mount_hub_rx(&mut self) {
         let vdom = self.vdom.take().unwrap();
         let mut hub_rx = self.hub_rx.take().unwrap();
-        let el_to_root = async move {
+        let root_to_hub = async move {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
@@ -247,14 +247,10 @@ impl MessageHub {
                     }
                 }
             }
-            log::info!("drop rx");
             drop(hub_rx);
-            log::info!("unmount root");
-            let root = vdom.unmount();
-            log::info!("drop root");
-            drop(root);
+            drop(vdom);
         };
-        spawn_local(el_to_root);
+        spawn_local(root_to_hub);
     }
 }
 
