@@ -156,15 +156,27 @@ where
 }
 
 // Contains the root vdom. Let entity trigger mutation by creating a pair queue.
-#[derive(Default)]
 pub struct MessageHub {
     /// sharable vdom, so we can have multiple listener that triggers re-render.
     pub vdom: Option<Vdom>,
+    pub hub_tx: mpsc::UnboundedSender<HubMsg>,
+    hub_rx: Option<mpsc::UnboundedReceiver<HubMsg>>,
 }
 
 impl MessageHub {
     /// create vdom from the top level entity, and start listening for re-render  signals
     /// from root el.
+    pub fn new() -> Self {
+        let (hub_tx, hub_rx) = mpsc::unbounded::<HubMsg>();
+        let hub_rx = Some(hub_rx);
+        let vdom = None;
+        Self {
+            hub_rx,
+            hub_tx,
+            vdom,
+        }
+    }
+
     pub fn bind_root_el<T, M, C>(&mut self, data: T)
     where
         Entity<T, M, C>: DodRender,
@@ -209,16 +221,38 @@ impl MessageHub {
 
     /// listen for re-render signals from entity, only re-render if necessary.
     pub fn mount_el_rx(&mut self, mut root_rx: mpsc::UnboundedReceiver<bool>) {
-        let vdom = self.vdom.take().unwrap();
+        // let vdom = self.vdom.take().unwrap();
+        let mut hub_tx = self.hub_tx.clone();
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
                 if msg {
-                    vdom.weak().render().compat().await.unwrap();
+                    hub_tx.send(HubMsg::Render).await.unwrap();
+                    // vdom.weak().render().compat().await.unwrap();
                 }
             }
-
-            log::info!("hello");
         };
         spawn_local(el_to_root);
     }
+
+    pub fn mount_hub_rx(&mut self) {
+        let vdom = self.vdom.take().unwrap();
+        let mut hub_rx = self.hub_rx.take().unwrap();
+        let el_to_root = async move {
+            while let Some(msg) = hub_rx.next().await {
+                match msg {
+                    HubMsg::Render => {
+                        vdom.weak().render().compat().await.unwrap();
+                    }
+                    HubMsg::Drop => break,
+                }
+            }
+            vdom.unmount();
+        };
+        spawn_local(el_to_root);
+    }
+}
+
+pub enum HubMsg {
+    Render,
+    Drop,
 }
