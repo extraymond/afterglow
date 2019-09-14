@@ -21,7 +21,9 @@ pub struct Entity<T, M, C> {
 
 impl<T, M, C> Drop for Entity<T, M, C> {
     fn drop(&mut self) {
-        log::info!("entity dropped");
+        self.data_tx.close_channel();
+        self.self_tx.close_channel();
+        self.root_tx.close_channel();
     }
 }
 
