@@ -91,7 +91,7 @@ where
     T: Render,
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-        let data = self.data.try_lock().unwrap();
+        let data = self.data.try_lock().expect("unable to lock data");
         data.render(
             ctx,
             self.data_tx.clone(),
@@ -107,8 +107,13 @@ pub trait Component {
     type RootMsg;
 
     /// handle data updates, if needs rerender, will send true to the root queue.
-    fn update(&mut self, msg: Self::Msg) -> bool;
-    fn update_el(&mut self, msg: Self::RootMsg) -> bool;
+    fn update(&mut self, _: Self::Msg) -> bool {
+        false
+    }
+    /// handle entity updates, if needs rerender, will send true to the root queue.
+    fn update_el(&mut self, _: Self::RootMsg) -> bool {
+        false
+    }
 }
 
 pub trait Render: Component {
@@ -176,11 +181,11 @@ impl MessageHub {
         T: Component + 'static,
     {
         let body = web_sys::window()
-            .unwrap()
+            .expect("unable to get window")
             .document()
-            .unwrap()
+            .expect("unable to get document")
             .body()
-            .unwrap();
+            .expect("unable to get body");
         let (root_tx, root_rx) = self.create_el_pair();
         let vdom = Vdom::new(&body, Entity::new(data, root_tx));
         self.bind_vdom(vdom);
@@ -220,13 +225,17 @@ impl MessageHub {
     }
 
     pub fn mount_hub_rx(&mut self) {
-        let vdom = self.vdom.take().unwrap();
-        let mut hub_rx = self.hub_rx.take().unwrap();
+        let vdom = self.vdom.take().expect("unable to take vdom.");
+        let mut hub_rx = self.hub_rx.take().expect("unable to take hub");
         let root_to_hub = async move {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
-                        vdom.weak().render().compat().await.unwrap();
+                        vdom.weak()
+                            .render()
+                            .compat()
+                            .await
+                            .expect("unable to rerender");
                     }
                     HubMsg::Drop => {
                         hub_rx.close();
