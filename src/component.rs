@@ -1,25 +1,24 @@
-use dodrio::Node;
-use dodrio::RenderContext;
 use dodrio::{Render as DodRender, Vdom};
-use futures::{
-    channel::mpsc, compat::Future01CompatExt, lock::Mutex, sink::SinkExt, stream::StreamExt,
-};
+use futures::lock::Mutex;
 
+use crate::prelude::*;
 use std::rc::Rc;
-use wasm_bindgen_futures::futures_0_3::spawn_local;
 
 /// Top level entity.
-pub struct Entity<T, M, C> {
+pub struct Entity<T>
+where
+    T: Component,
+{
     /// send true to let vdom trigger re-render.
     root_tx: mpsc::UnboundedSender<bool>,
     /// contained data, may or may not be a entity.
     pub data: Rc<Mutex<T>>,
     /// send msg to trigger data mutation.
-    pub data_tx: mpsc::UnboundedSender<M>,
-    pub self_tx: mpsc::UnboundedSender<C>,
+    pub data_tx: mpsc::UnboundedSender<T::Msg>,
+    pub self_tx: mpsc::UnboundedSender<T::RootMsg>,
 }
 
-impl<T, M, C> Drop for Entity<T, M, C> {
+impl<T: Component> Drop for Entity<T> {
     fn drop(&mut self) {
         self.data_tx.disconnect();
         self.self_tx.disconnect();
@@ -27,16 +26,14 @@ impl<T, M, C> Drop for Entity<T, M, C> {
     }
 }
 
-impl<T, M, C> Entity<T, M, C> {
+impl<T> Entity<T>
+where
+    T: Component + 'static,
+{
     /// creata a  entity that contains the data, and allow root to listen to whether to re-render.
-    pub fn new(data: T, root_tx: mpsc::UnboundedSender<bool>) -> Entity<T, M, C>
-    where
-        T: Component<Msg = M, RootMsg = C> + 'static,
-        M: 'static,
-        C: 'static,
-    {
-        let (data_tx, data_rx) = mpsc::unbounded::<M>();
-        let (self_tx, self_rx) = mpsc::unbounded::<C>();
+    pub fn new(data: T, root_tx: mpsc::UnboundedSender<bool>) -> Entity<T> {
+        let (data_tx, data_rx) = mpsc::unbounded::<T::Msg>();
+        let (self_tx, self_rx) = mpsc::unbounded::<T::RootMsg>();
         let el = Entity {
             data: Rc::new(Mutex::new(data)),
             data_tx,
@@ -49,11 +46,9 @@ impl<T, M, C> Entity<T, M, C> {
     }
 
     /// after attaching data to the entity, listen to msges emit by data.
-    fn mount_data_rx(&self, mut data_rx: mpsc::UnboundedReceiver<M>)
+    fn mount_data_rx(&self, mut data_rx: mpsc::UnboundedReceiver<T::Msg>)
     where
-        T: Component<Msg = M> + 'static,
-        M: 'static,
-        C: 'static,
+        T: Component + 'static,
     {
         let mut root_tx = self.root_tx.clone();
         let data_handle = self.data.clone();
@@ -70,11 +65,9 @@ impl<T, M, C> Entity<T, M, C> {
         spawn_local(data_to_el);
     }
 
-    fn mount_self_rx(&self, mut self_rx: mpsc::UnboundedReceiver<C>)
+    fn mount_self_rx(&self, mut self_rx: mpsc::UnboundedReceiver<T::RootMsg>)
     where
-        T: Component<Msg = M, RootMsg = C> + 'static,
-        M: 'static,
-        C: 'static,
+        T: Component + 'static,
     {
         let mut root_tx = self.root_tx.clone();
         let data_handle = self.data.clone();
@@ -93,9 +86,9 @@ impl<T, M, C> Entity<T, M, C> {
 }
 
 /// Default impl for Entity.
-impl<T, M, C> DodRender for Entity<T, M, C>
+impl<T> DodRender for Entity<T>
 where
-    T: Render<M, C>,
+    T: Render,
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let data = self.data.try_lock().unwrap();
@@ -118,24 +111,22 @@ pub trait Component {
     fn update_el(&mut self, msg: Self::RootMsg) -> bool;
 }
 
-pub trait Render<M, C> {
+pub trait Render: Component {
     fn render<'a>(
         &self,
         ctx: &mut RenderContext<'a>,
-        data_tx: mpsc::UnboundedSender<M>,
-        self_tx: mpsc::UnboundedSender<C>,
+        data_tx: mpsc::UnboundedSender<Self::Msg>,
+        self_tx: mpsc::UnboundedSender<Self::RootMsg>,
         root_tx: mpsc::UnboundedSender<bool>,
     ) -> Node<'a>;
 }
 
-impl<T, M, C> Component for Entity<T, M, C>
+impl<T> Component for Entity<T>
 where
-    T: Component<Msg = M, RootMsg = C> + 'static,
-    M: 'static,
-    C: 'static,
+    T: Component + 'static,
 {
-    type Msg = M;
-    type RootMsg = C;
+    type Msg = T::Msg;
+    type RootMsg = T::RootMsg;
     fn update(&mut self, msg: Self::Msg) -> bool {
         let data_handle = self.data.clone();
         let fut = async move {
@@ -179,12 +170,10 @@ impl MessageHub {
         }
     }
 
-    pub fn bind_root_el<T, M, C>(&mut self, data: T)
+    pub fn bind_root_el<T>(&mut self, data: T)
     where
-        Entity<T, M, C>: DodRender,
-        T: 'static + Component<Msg = M, RootMsg = C>,
-        M: 'static,
-        C: 'static,
+        Entity<T>: DodRender,
+        T: Component + 'static,
     {
         let body = web_sys::window()
             .unwrap()
@@ -199,14 +188,9 @@ impl MessageHub {
     }
 
     /// create a entity.
-    pub fn create_el<T, M, C>(
-        &mut self,
-        data: T,
-    ) -> (Entity<T, M, C>, mpsc::UnboundedReceiver<bool>)
+    pub fn create_el<T>(&mut self, data: T) -> (Entity<T>, mpsc::UnboundedReceiver<bool>)
     where
-        T: Component<Msg = M, RootMsg = C> + 'static,
-        M: 'static,
-        C: 'static,
+        T: Component + 'static,
     {
         let (root_tx, root_rx) = self.create_el_pair();
         (Entity::new(data, root_tx), root_rx)
