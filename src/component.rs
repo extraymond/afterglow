@@ -14,8 +14,8 @@ where
     /// contained data, may or may not be a entity.
     pub data: Rc<Mutex<T>>,
     /// send msg to trigger data mutation.
-    pub data_tx: mpsc::UnboundedSender<T::Msg>,
-    pub self_tx: mpsc::UnboundedSender<T::RootMsg>,
+    pub data_tx: mpsc::UnboundedSender<M>,
+    pub self_tx: mpsc::UnboundedSender<C>,
 }
 
 impl<T: Component<M, C>, M, C> Drop for Entity<T, M, C> {
@@ -32,8 +32,8 @@ where
 {
     /// creata a  entity that contains the data, and allow root to listen to whether to re-render.
     pub fn new(data: T, root_tx: mpsc::UnboundedSender<bool>) -> Entity<T, M, C> {
-        let (data_tx, data_rx) = mpsc::unbounded::<T::Msg>();
-        let (self_tx, self_rx) = mpsc::unbounded::<T::RootMsg>();
+        let (data_tx, data_rx) = mpsc::unbounded::<M>();
+        let (self_tx, self_rx) = mpsc::unbounded::<C>();
         let el = Entity {
             data: Rc::new(Mutex::new(data)),
             data_tx,
@@ -46,7 +46,7 @@ where
     }
 
     /// after attaching data to the entity, listen to msges emit by data.
-    fn mount_data_rx(&self, mut data_rx: mpsc::UnboundedReceiver<T::Msg>)
+    fn mount_data_rx(&self, mut data_rx: mpsc::UnboundedReceiver<M>)
     where
         T: Component<M, C>,
     {
@@ -65,7 +65,7 @@ where
         spawn_local(data_to_el);
     }
 
-    fn mount_self_rx(&self, mut self_rx: mpsc::UnboundedReceiver<T::RootMsg>)
+    fn mount_self_rx(&self, mut self_rx: mpsc::UnboundedReceiver<C>)
     where
         T: Component<M, C>,
     {
@@ -103,18 +103,15 @@ where
 
 /// Component depends on associated msg to trigger mutation.
 pub trait Component<M, C> {
-    type Msg;
-    type RootMsg;
-
     // initiate data
     fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
 
     /// handle data updates, if needs rerender, will send true to the root queue.
-    fn update(&mut self, _: Self::Msg) -> bool {
+    fn update(&mut self, _: M) -> bool {
         false
     }
     /// handle entity updates, if needs rerender, will send true to the root queue.
-    fn update_el(&mut self, _: Self::RootMsg) -> bool {
+    fn update_el(&mut self, _: C) -> bool {
         false
     }
 }
@@ -123,8 +120,8 @@ pub trait Render<M, C>: Component<M, C> {
     fn render<'a>(
         &self,
         ctx: &mut RenderContext<'a>,
-        data_tx: mpsc::UnboundedSender<Self::Msg>,
-        self_tx: mpsc::UnboundedSender<Self::RootMsg>,
+        data_tx: mpsc::UnboundedSender<M>,
+        self_tx: mpsc::UnboundedSender<C>,
         root_tx: mpsc::UnboundedSender<bool>,
     ) -> Node<'a>;
 }
@@ -133,13 +130,10 @@ impl<T, M, C> Component<M, C> for Entity<T, M, C>
 where
     T: Component<M, C>,
 {
-    type Msg = T::Msg;
-    type RootMsg = T::RootMsg;
-
     fn new(mut root_tx: mpsc::UnboundedSender<bool>) -> Entity<T, M, C> {
         let data = T::new(root_tx.clone());
-        let (data_tx, data_rx) = mpsc::unbounded::<T::Msg>();
-        let (self_tx, self_rx) = mpsc::unbounded::<T::RootMsg>();
+        let (data_tx, data_rx) = mpsc::unbounded::<M>();
+        let (self_tx, self_rx) = mpsc::unbounded::<C>();
         let el = Entity {
             data: Rc::new(Mutex::new(data)),
             data_tx,
@@ -156,7 +150,7 @@ where
         el
     }
 
-    fn update(&mut self, msg: Self::Msg) -> bool {
+    fn update(&mut self, msg: M) -> bool {
         let data_handle = self.data.clone();
         let fut = async move {
             let mut data = data_handle.lock().await;
@@ -166,7 +160,7 @@ where
         false
     }
 
-    fn update_el(&mut self, msg: Self::RootMsg) -> bool {
+    fn update_el(&mut self, msg: C) -> bool {
         let data_handle = self.data.clone();
         let fut = async move {
             let mut data = data_handle.lock().await;
