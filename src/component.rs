@@ -136,16 +136,21 @@ where
     type Msg = T::Msg;
     type RootMsg = T::RootMsg;
 
-    fn new(root_tx: mpsc::UnboundedSender<bool>) -> Entity<T> {
+    fn new(mut root_tx: mpsc::UnboundedSender<bool>) -> Entity<T> {
         let data = T::new(root_tx.clone());
         let (data_tx, data_rx) = mpsc::unbounded::<T::Msg>();
         let (self_tx, self_rx) = mpsc::unbounded::<T::RootMsg>();
         let el = Entity {
             data: Rc::new(Mutex::new(data)),
             data_tx,
-            root_tx,
+            root_tx: root_tx.clone(),
             self_tx,
         };
+        let fut = async move {
+            root_tx.send(true).await.unwrap();
+        };
+
+        spawn_local(fut);
         el.mount_self_rx(self_rx);
         el.mount_data_rx(data_rx);
         el
