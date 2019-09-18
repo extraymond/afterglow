@@ -106,6 +106,9 @@ pub trait Component {
     type Msg;
     type RootMsg;
 
+    // initiate data
+    fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
+
     /// handle data updates, if needs rerender, will send true to the root queue.
     fn update(&mut self, _: Self::Msg) -> bool {
         false
@@ -132,6 +135,22 @@ where
 {
     type Msg = T::Msg;
     type RootMsg = T::RootMsg;
+
+    fn new(root_tx: mpsc::UnboundedSender<bool>) -> Entity<T> {
+        let data = T::new(root_tx.clone());
+        let (data_tx, data_rx) = mpsc::unbounded::<T::Msg>();
+        let (self_tx, self_rx) = mpsc::unbounded::<T::RootMsg>();
+        let el = Entity {
+            data: Rc::new(Mutex::new(data)),
+            data_tx,
+            root_tx,
+            self_tx,
+        };
+        el.mount_self_rx(self_rx);
+        el.mount_data_rx(data_rx);
+        el
+    }
+
     fn update(&mut self, msg: Self::Msg) -> bool {
         let data_handle = self.data.clone();
         let fut = async move {
