@@ -16,7 +16,6 @@ typed-html = { version = "0.2.1", features = ["dodrio_macro"] }
 js-sys = "0.3.27"
 log = "0.4.8"
 surf = { version = "1.0.2", features = ["wasm-client"] }
-ws_stream_wasm = "0.3.0"
 
 [dependencies.web-sys]
 version = "0.3.27"
