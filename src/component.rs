@@ -38,11 +38,11 @@ where
             data: Rc::new(Mutex::new(data)),
             data_tx: data_tx.clone(),
             self_tx: self_tx.clone(),
-            root_tx,
+            root_tx: root_tx.clone(),
         };
         el.mount_self_rx(self_rx);
         el.mount_data_rx(data_rx);
-        T::mounted(data_tx, self_tx);
+        T::mounted(data_tx, self_tx, root_tx);
         el
     }
 
@@ -108,7 +108,7 @@ pub trait Component<M, C> {
     fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
 
     // create task after component mounted
-    fn mounted(data_tx: Sender<M>, self_tx: Sender<C>) {}
+    fn mounted(data_tx: Sender<M>, self_tx: Sender<C>, root_tx: Sender<bool>) {}
 
     /// handle data updates, if needs rerender, will send true to the root queue.
     fn update(&mut self, _: M) -> bool {
