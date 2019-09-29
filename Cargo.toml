@@ -7,18 +7,23 @@ description = "Extension that helps(me at least) increasing productivity when de
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
 [dependencies]
-wasm-bindgen = { version = "0.2.50", features = ["serde"] }
+wasm-bindgen = { version = "0.2.51", features = ["serde"] }
 dodrio = { git= "https://github.com/fitzgen/dodrio" }
 futures-preview = { version = "0.3.0-alpha.18", features = ["async-await", "nightly", "compat"]}
 wasm-bindgen-futures = { version = "0.3.27", features = ["futures_0_3"] }
 typed-html = { version = "0.2.1", features = ["dodrio_macro"] }
-js-sys = "0.3.27"
+js-sys = "0.3.28"
 log = "0.4.8"
 surf = { version = "1.0.2", features = ["wasm-client"] }
+cfg-if = "0.1.10"
 
 [dependencies.web-sys]
-version = "0.3.27"
+version = "0.3.28"
 features = [
   'Document',
   'Element',
@@ -28,3 +33,7 @@ features = [
   "Worker",
   "WorkerGlobalScope",
 ]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.1"
+femme = "1.2.0"

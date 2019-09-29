@@ -1,28 +1,76 @@
 use js_sys::Promise;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::futures_0_3::JsFuture;
-use web_sys::{window, WorkerGlobalScope};
+use web_sys::{Window, WorkerGlobalScope};
 
-pub async fn timer(ms: i32) -> Result<(), JsValue> {
-    let promise = Promise::new(&mut |yes, _| {
-        let win = window().unwrap();
-        win.set_timeout_with_callback_and_timeout_and_arguments_0(&yes, ms)
-            .unwrap();
-    });
-    let js_fut = JsFuture::from(promise);
-    js_fut.await?;
-    Ok(())
+enum TimerScope {
+    _window(Window),
+    _worker(WorkerGlobalScope),
 }
 
-pub async fn worker_timer(ms: i32) -> Result<(), JsValue> {
-    let promise = Promise::new(&mut |yes, _| {
+pub struct Timer {
+    scope: TimerScope,
+}
+
+impl Timer {
+    fn _init() -> Result<Self, JsValue> {
         let global = js_sys::global();
-        let scope = global.dyn_into::<WorkerGlobalScope>().unwrap();
-        scope
-            .set_timeout_with_callback_and_timeout_and_arguments_0(&yes, ms)
-            .unwrap();
-    });
-    let js_fut = JsFuture::from(promise);
-    js_fut.await?;
-    Ok(())
+        let _scope = global.clone().unchecked_into::<Window>();
+        if _scope.has_type::<Window>() {
+            let scope = TimerScope::_window(_scope);
+            Ok(Timer { scope })
+        } else {
+            let _scope = global.clone().dyn_into::<WorkerGlobalScope>()?;
+            let scope = TimerScope::_worker(_scope);
+            Ok(Timer { scope })
+        }
+    }
+
+    async fn _sleep(&self, ms: i32) -> Result<(), JsValue> {
+        let promise = Promise::new(&mut |yes, _| match &self.scope {
+            TimerScope::_window(scope) => {
+                scope
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(&yes, ms)
+                    .unwrap();
+            }
+            TimerScope::_worker(scope) => {
+                scope
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(&yes, ms)
+                    .unwrap();
+            }
+        });
+        let js_fut = JsFuture::from(promise);
+        js_fut.await?;
+        Ok(())
+    }
+
+    pub async fn sleep(ms: i32) -> Result<(), JsValue> {
+        let timer = Timer::_init().expect("can't find correct scope to setTimeout");
+        timer._sleep(ms).await?;
+        Ok(())
+    }
+}
+
+pub trait Sleeper {
+    fn sleep(&self, ms: i32) -> dyn futures::future::Future<Output = Result<(), JsValue>>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::*;
+
+    #[wasm_bindgen_test]
+    async fn test_timer() {
+        femme::start(log::LevelFilter::Info).unwrap();
+        for i in 1..5 {
+            let duration = 1000 * i;
+            let start = js_sys::Date::new_0().get_time();
+            Timer::sleep(duration).await.expect("not able to sleep");
+            let end = js_sys::Date::new_0().get_time();
+            let offset = end - start;
+            log::info!("{}", offset - f64::from(duration));
+            // assert!(offset - f64::from(duration) <= 3.0);
+        }
+    }
 }
