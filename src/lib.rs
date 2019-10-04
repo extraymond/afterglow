@@ -1,5 +1,8 @@
 pub mod component;
+pub mod services;
+pub mod styler;
 pub mod utils;
+
 pub mod prelude {
     pub use crate::component::*;
     pub use dodrio::{Node, RenderContext};
@@ -39,6 +42,12 @@ cfg_if! {
 
 #[cfg(test)]
 mod tests {
+
     use wasm_bindgen_test::*;
     wasm_bindgen_test_configure!(run_in_browser);
+
+    pub fn init_test() {
+        crate::set_panic_hook();
+        femme::start(log::LevelFilter::Info);
+    }
 }

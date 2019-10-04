@@ -21,6 +21,8 @@ js-sys = "0.3.28"
 log = "0.4.8"
 surf = { version = "1.0.2", features = ["wasm-client"] }
 cfg-if = "0.1.10"
+console_error_panic_hook = { version = "0.1.5", optional = true }
+wee_alloc = { version = "0.4.2", optional = true }
 
 [dependencies.web-sys]
 version = "0.3.28"
@@ -32,8 +34,13 @@ features = [
   'Window',
   "Worker",
   "WorkerGlobalScope",
+  "WebSocket",
 ]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.1"
 femme = "1.2.0"
+
+[features]
+default = ["console_error_panic_hook"]
+release = ["console_error_panic_hook", "wee_alloc"]

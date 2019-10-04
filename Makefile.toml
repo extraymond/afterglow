@@ -1,0 +1,9 @@
+[tasks.wasm-test]
+depedency = ["check"]
+command = "wasm-pack"
+args = ["test", "--firefox"]
+watch = true
+
+[tasks.check]
+command = "cargo"
+args = ["check"]
