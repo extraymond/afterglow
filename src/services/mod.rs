@@ -28,6 +28,18 @@ pub struct ServiceStore<In, Out> {
 }
 
 impl<In, Out> ServiceStore<In, Out> {
+    fn new() -> ServiceStore<In, Out> {
+        ServiceStore {
+            _onopen: None,
+            _onclose: None,
+            _onmsg: None,
+            out_tx: None,
+            subscribers: Rc::new(Mutex::new(vec![])),
+        }
+    }
+}
+
+impl<In, Out> ServiceStore<In, Out> {
     fn set_onopen(&mut self, cbk: Closure<dyn FnMut()>) -> Result<(), failure::Error> {
         self._onopen = Some(cbk);
         Ok(())
@@ -46,8 +58,8 @@ impl<In, Out> ServiceStore<In, Out> {
 
 /// Generic server that handles incoming/output msg.
 pub struct Service<In, Out> {
-    client: Box<dyn ServiceInterface<In, Out>>,
-    store: ServiceStore<In, Out>,
+    pub client: Box<dyn ServiceInterface<In, Out>>,
+    pub store: ServiceStore<In, Out>,
 }
 
 #[async_trait(?Send)]
@@ -192,18 +204,21 @@ mod test {
 
         let client = ws::Client {
             client: None,
-            url: "ws://127.0.0.1:5000".to_string()
+            url: "ws://127.0.0.1:5000".to_string(),
         };
 
         let store: ServiceStore<MessageEvent, String> = ServiceStore {
-            _onmsg: None, _onopen: None, _onclose:None, subscribers: Rc::new(Mutex::new(vec![])), out_tx: None
+            _onmsg: None,
+            _onopen: None,
+            _onclose: None,
+            subscribers: Rc::new(Mutex::new(vec![])),
+            out_tx: None,
         };
 
         let mut server: Service<MessageEvent, String> = Service {
             client: Box::new(client),
-            store
+            store,
         };
-
 
         let (tx, mut rx) = mpsc::unbounded::<MessageEvent>();
         let listening = async {
@@ -216,13 +231,18 @@ mod test {
             subscriptions.push(tx);
         }
 
-
-        server.client.connect(&mut server.store).await.expect("open failed");
+        server
+            .client
+            .connect(&mut server.store)
+            .await
+            .expect("open failed");
         log::info!("connected");
         let task = server.client.processing(&mut server.store);
         let joined = futures::future::join(listening, task);
         let delayd = async {
-            crate::utils::Timer::sleep(10000).await.expect("can't sleep");
+            crate::utils::Timer::sleep(10000)
+                .await
+                .expect("can't sleep");
             log::info!("wait complete");
         };
         // delayd.await;
