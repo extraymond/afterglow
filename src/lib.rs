@@ -44,8 +44,8 @@ cfg_if! {
 mod tests {
 
     use wasm_bindgen_test::*;
-    wasm_bindgen_test_configure!(run_in_browser);
 
+    wasm_bindgen_test_configure!(run_in_browser);
     pub fn init_test() {
         crate::set_panic_hook();
         femme::start(log::LevelFilter::Info);
