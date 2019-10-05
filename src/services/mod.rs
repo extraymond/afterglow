@@ -28,7 +28,7 @@ pub struct ServiceStore<In, Out> {
 }
 
 impl<In, Out> ServiceStore<In, Out> {
-    fn new() -> ServiceStore<In, Out> {
+    pub fn new() -> ServiceStore<In, Out> {
         ServiceStore {
             _onopen: None,
             _onclose: None,
