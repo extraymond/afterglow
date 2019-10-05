@@ -1,14 +1,9 @@
 pub mod ws;
+use crate::prelude::*;
 use async_trait::async_trait;
-use futures::channel::{mpsc, oneshot};
-use futures::prelude::*;
+use futures::channel::oneshot;
 use futures::stream;
-use futures::Future;
-use std::pin::Pin;
 use wasm_bindgen::convert::FromWasmAbi;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::futures_0_3::spawn_local;
 use web_sys::MessageEvent;
 
 use futures::lock::Mutex;
@@ -164,6 +159,19 @@ pub trait ServiceMsg {
         Ok(())
     }
 
+    async fn listening(
+        &self,
+        mut rx: mpsc::UnboundedReceiver<String>,
+    ) -> Result<(), failure::Error> {
+        while let Some(msg) = rx.next().await {
+            self.sending(&msg).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn sending(&self, msg: &str) -> Result<(), failure::Error>;
+
     async fn broadcast(
         &self,
         msg: Self::In,
@@ -172,7 +180,6 @@ pub trait ServiceMsg {
         let subscriptions = store.subscribers.lock().await;
         stream::iter(subscriptions.iter())
             .for_each_concurrent(None, |mut tx| {
-                let mut tx = tx.clone();
                 let msg = msg.clone();
                 async move {
                     tx.send(msg).await.expect("unable to broadcast to remote");
@@ -180,6 +187,15 @@ pub trait ServiceMsg {
             })
             .await;
         Ok(())
+    }
+
+    async fn combined(
+        &self,
+        mut store: &mut ServiceStore<Self::In, Self::Out>,
+        rx: Receiver<String>,
+    ) {
+        let joined = futures::future::join(self.processing(&mut store), self.listening(rx));
+        let _ = joined.await;
     }
 }
 
@@ -207,13 +223,7 @@ mod test {
             url: "ws://127.0.0.1:5000".to_string(),
         };
 
-        let store: ServiceStore<MessageEvent, String> = ServiceStore {
-            _onmsg: None,
-            _onopen: None,
-            _onclose: None,
-            subscribers: Rc::new(Mutex::new(vec![])),
-            out_tx: None,
-        };
+        let store: ServiceStore<MessageEvent, String> = ServiceStore::new();
 
         let mut server: Service<MessageEvent, String> = Service {
             client: Box::new(client),

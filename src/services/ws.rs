@@ -24,9 +24,18 @@ impl ServiceConnect<MessageEvent, String> for Client {
 
 impl ServiceDisconnect<MessageEvent, String> for Client {}
 
+#[async_trait(?Send)]
 impl ServiceMsg for Client {
     type In = MessageEvent;
     type Out = String;
+
+    async fn sending(&self, msg: &str) -> Result<(), failure::Error> {
+        if let Some(client) = &self.client {
+            client.send_with_str(msg).expect("unable to send msg");
+        }
+
+        Ok(())
+    }
 
     fn mount_onmsg(&self, cbk: &Closure<dyn FnMut(Self::In)>) {
         if let Some(target) = &self.client {
