@@ -2,6 +2,7 @@ pub mod ws;
 use crate::prelude::*;
 use async_trait::async_trait;
 use futures::channel::oneshot;
+use futures::prelude::*;
 use futures::stream;
 use wasm_bindgen::convert::FromWasmAbi;
 use web_sys::MessageEvent;
@@ -250,9 +251,7 @@ mod test {
         let task = server.client.processing(&mut server.store);
         let joined = futures::future::join(listening, task);
         let delayd = async {
-            crate::utils::Timer::sleep(10000)
-                .await
-                .expect("can't sleep");
+            crate::utils::sleep(10000).await.expect("can't sleep");
             log::info!("wait complete");
         };
         // delayd.await;
