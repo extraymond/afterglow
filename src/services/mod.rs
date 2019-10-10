@@ -1,3 +1,4 @@
+pub mod bc;
 pub mod ws;
 use crate::prelude::*;
 use async_trait::async_trait;
@@ -10,6 +11,7 @@ use web_sys::MessageEvent;
 use futures::lock::Mutex;
 use std::rc::Rc;
 
+#[derive(Default)]
 pub struct ServiceStore<In, Out> {
     /// stored callback for open notification.
     _onopen: Option<Closure<dyn FnMut()>>,
@@ -98,24 +100,27 @@ pub trait ServiceDisconnect<In: 'static, Out: 'static> {
         Ok(())
     }
 
-    async fn bind_disconnect(
+    fn mount_onclose(&self, cbk: &Closure<dyn FnMut()>);
+
+    fn bind_disconnect(
         &self,
         store: &mut ServiceStore<In, Out>,
     ) -> Result<oneshot::Receiver<()>, failure::Error> {
         let (tx, rx) = oneshot::channel::<()>();
         let mut tx = Some(tx);
         let f = move || {
+            log::info!("connection disconnect");
             let tx = tx.take().expect("already taken");
             tx.send(()).expect("unable to notify close");
         };
         let cbk = Closure::wrap(Box::new(f) as Box<dyn FnMut()>);
+        self.mount_onclose(&cbk);
         store.set_onclose(cbk)?;
         Ok(rx)
     }
 
-    async fn disconnect(&self, store: &mut ServiceStore<In, Out>) -> Result<(), failure::Error> {
+    async fn disconnect(&self, rx: oneshot::Receiver<()>) -> Result<(), failure::Error> {
         self.pre_disconnect().await?;
-        let rx = self.bind_disconnect(store).await?;
         rx.await?;
         Ok(())
     }
@@ -206,56 +211,4 @@ where
     In: FromWasmAbi + 'static + Clone,
     Out: FromWasmAbi + 'static,
 {
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::tests::init_test;
-
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    #[wasm_bindgen_test]
-    async fn test_dummy_service() {
-        init_test();
-
-        let client = ws::Client {
-            client: None,
-            url: "ws://127.0.0.1:5000".to_string(),
-        };
-
-        let store: ServiceStore<MessageEvent, String> = ServiceStore::new();
-
-        let mut server: Service<MessageEvent, String> = Service {
-            client: Box::new(client),
-            store,
-        };
-
-        let (tx, mut rx) = mpsc::unbounded::<MessageEvent>();
-        let listening = async {
-            while let Some(msg) = rx.next().await {
-                log::info!("incoming msg!!!!, {:?}", msg.data());
-            }
-        };
-        {
-            let mut subscriptions = server.store.subscribers.lock().await;
-            subscriptions.push(tx);
-        }
-
-        server
-            .client
-            .connect(&mut server.store)
-            .await
-            .expect("open failed");
-        log::info!("connected");
-        let task = server.client.processing(&mut server.store);
-        let joined = futures::future::join(listening, task);
-        let delayd = async {
-            crate::utils::sleep(10000).await.expect("can't sleep");
-            log::info!("wait complete");
-        };
-        // delayd.await;
-        let mega_joined = futures::future::join(delayd, joined);
-        let _ = mega_joined.await;
-    }
 }

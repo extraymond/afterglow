@@ -24,42 +24,4 @@ pub async fn sleep(ms: i32) -> Result<(), JsValue> {
 mod tests {
     use super::*;
     use wasm_bindgen_test::*;
-
-    // #[wasm_bindgen_test]
-    // async fn test_timer() {
-    //     crate::tests::init_test();
-    //     for i in 1..50 {
-    //         let duration = 100 * i;
-    //         let start = js_sys::Date::new_0().get_time();
-    //         Timer::sleep(duration).await.expect("not able to sleep");
-    //         let end = js_sys::Date::new_0().get_time();
-    //         let offset = end - start;
-    //         log::info!(
-    //             "sleep for:{}, offset:{}",
-    //             duration,
-    //             offset - f64::from(duration)
-    //         );
-    //         assert!(offset - f64::from(duration) <= 10.0);
-    //     }
-    // }
-    //
-    // #[wasm_bindgen_test]
-    // async fn test_timer_concurrent() {
-    //     crate::tests::init_test();
-    //     for max in 1..=20 {
-    //         for frame_time in 10..=20 {
-    //             let tasks = futures::future::join_all((1..=max).map(|i| {
-    //                 let duration = frame_time * i;
-    //                 Timer::sleep(duration)
-    //             }));
-    //             let start = js_sys::Date::new_0().get_time();
-    //             tasks.await;
-    //             let end = js_sys::Date::new_0().get_time();
-    //             let offset = end - start;
-    //             let off = offset - f64::from(max * frame_time);
-    //             log::info!("total offset: {}", off);
-    //             assert!(off < 200.0);
-    //         }
-    //     }
-    // }
 }
