@@ -14,7 +14,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wasm-bindgen = { version = "0.2.51", features = ["serde"] }
 dodrio = { git= "https://github.com/fitzgen/dodrio" }
-futures-preview = { version = "0.3.0-alpha.18", features = ["async-await", "nightly", "compat"]}
 wasm-bindgen-futures = { version = "0.3.27", features = ["futures_0_3"] }
 typed-html = { version = "0.2.1", features = ["dodrio_macro"] }
 js-sys = "0.3.28"
@@ -25,6 +24,7 @@ console_error_panic_hook = { version = "0.1.5", optional = true }
 wee_alloc = { version = "0.4.2", optional = true }
 async-trait = "0.1.13"
 failure = "0.1.5"
+futures = { version = "0.3.1", features= ["compat"] }
 
 [dependencies.web-sys]
 version = "0.3.28"
