@@ -3,7 +3,6 @@ use crate::prelude::{mpsc, Receiver, Sender};
 use core::fmt;
 use dodrio::Vdom;
 use failure::{Error, Fail};
-use futures::compat::Future01CompatExt;
 use futures::{SinkExt, StreamExt};
 
 pub struct Hub {
@@ -30,7 +29,7 @@ impl Hub {
 
     pub async fn render(&self) -> Result<(), Error> {
         if let Some(vdom) = &self.vdom {
-            vdom.weak().render().compat().await?;
+            vdom.weak().render().await?;
         } else {
             log::warn!("Unable to render without a mounted vdom");
         }

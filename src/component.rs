@@ -266,11 +266,7 @@ impl MessageHub {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
-                        vdom.weak()
-                            .render()
-                            .compat()
-                            .await
-                            .expect("unable to rerender");
+                        vdom.weak().render().await.expect("unable to rerender");
                     }
                     HubMsg::Drop => {
                         hub_rx.close();

@@ -8,15 +8,13 @@ pub mod threading;
 pub mod utils;
 pub mod views;
 
-
-
 pub mod prelude {
     pub use crate::component::*;
     pub use dodrio::{Node, RenderContext};
     pub use futures::channel::mpsc::{
         self, UnboundedReceiver as Receiver, UnboundedSender as Sender,
     };
-    pub use futures::{compat::Future01CompatExt, sink::SinkExt, stream::StreamExt};
+    pub use futures::{sink::SinkExt, stream::StreamExt};
     pub use typed_html::{self, dodrio};
     pub use wasm_bindgen::{prelude::*, JsCast};
     pub use wasm_bindgen_futures::futures_0_3::*;

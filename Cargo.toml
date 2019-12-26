@@ -12,19 +12,19 @@ crate-type = ["cdylib", "rlib"]
 
 
 [dependencies]
-wasm-bindgen = { version = "0.2.51", features = ["serde"] }
+wasm-bindgen = { version = "0.2.56", features = ["serde"] }
 dodrio = { git= "https://github.com/fitzgen/dodrio" }
-wasm-bindgen-futures = { version = "0.3.27", features = ["futures_0_3"] }
+wasm-bindgen-futures = { version = "0.3.27" }
 typed-html = { version = "0.2.1", features = ["dodrio_macro"] }
 js-sys = "0.3.28"
 log = "0.4.8"
-surf = { version = "1.0.2", features = ["wasm-client"] }
+surf = { version = "1.0.3", features = ["wasm-client"] }
 cfg-if = "0.1.10"
-console_error_panic_hook = { version = "0.1.5", optional = true }
-wee_alloc = { version = "0.4.2", optional = true }
-async-trait = "0.1.13"
-failure = "0.1.5"
-futures = { version = "0.3.1", features= ["compat"] }
+console_error_panic_hook = { version = "0.1.6", optional = true }
+wee_alloc = { version = "0.4.5", optional = true }
+async-trait = "0.1.21"
+failure = "0.1.6"
+futures = "0.3.1"
 
 [dependencies.web-sys]
 version = "0.3.28"
@@ -43,7 +43,7 @@ features = [
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.1"
-femme = "1.2.0"
+femme = "1.3.0"
 
 [features]
 default = ["console_error_panic_hook"]

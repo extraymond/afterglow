@@ -1,10 +1,7 @@
 use crate::prelude::{mpsc, spawn_local, Receiver, Sender};
 use async_trait::async_trait;
-use core::pin::Pin;
-use core::task::Context;
 use dodrio::RootRender;
 use dodrio::{Node, RenderContext, Vdom, VdomWeak};
-use futures::compat::Future01CompatExt;
 use futures::lock::Mutex;
 use futures::prelude::*;
 use std::rc::Rc;
@@ -153,11 +150,7 @@ mod tests {
         let vdom = Vdom::new(&body, entity);
         while let Some(msg) = rx.next().await {
             if msg {
-                vdom.weak()
-                    .render()
-                    .compat()
-                    .await
-                    .expect("unable to rerender");
+                vdom.weak().render().await.expect("unable to rerender");
             }
         }
     }
