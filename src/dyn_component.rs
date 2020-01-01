@@ -1,11 +1,10 @@
 use crate::prelude::{mpsc, spawn_local, Receiver, Sender};
 
 use dodrio::RootRender;
-use dodrio::{VdomWeak};
+use dodrio::VdomWeak;
 use futures::lock::Mutex;
 
 use std::rc::Rc;
-
 
 pub struct Entity<T> {
     /// data container
@@ -52,6 +51,7 @@ pub trait MsgHandler<T> {
 mod tests {
     use super::*;
     use crate::tests::init_test;
+    use async_trait::*;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     struct Dummy {

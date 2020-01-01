@@ -27,7 +27,7 @@ cfg_if! {
     // `set_panic_hook` function to get better error messages if we ever panic.
     if #[cfg(feature = "console_error_panic_hook")] {
         extern crate console_error_panic_hook;
-        
+
     } else {
         #[inline]
         fn set_panic_hook() {}
@@ -48,11 +48,12 @@ cfg_if! {
 #[cfg(test)]
 mod tests {
 
+    use super::use_panic_hook;
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test_configure!(run_in_browser);
     pub fn init_test() {
-        crate::set_panic_hook();
+        set_panic_hook();
         femme::start(log::LevelFilter::Info);
     }
 }
