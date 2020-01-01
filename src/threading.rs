@@ -47,7 +47,7 @@ impl AgentStore {
     pub async fn listening(&mut self) {
         let mut msg_rx = self.msg_rx.take().expect("unable to take msg_rx");
         while let Some(msg) = msg_rx.next().await {
-            let data = msg.data();
+            let _data = msg.data();
             
         }
     }

@@ -1,8 +1,8 @@
 use crate::prelude::spawn_local;
 use crate::prelude::{mpsc, Receiver, Sender};
-use core::fmt;
+
 use dodrio::Vdom;
-use failure::{Error, Fail};
+use failure::{Error};
 use futures::{SinkExt, StreamExt};
 
 pub struct Hub {
@@ -38,7 +38,7 @@ impl Hub {
     }
 
     pub async fn link_el(&self) {
-        let (tx, mut rx) = mpsc::unbounded::<bool>();
+        let (_tx, mut rx) = mpsc::unbounded::<bool>();
         let mut hub_tx = self.hub_tx.clone();
 
         let receive_update = async move {

@@ -1,11 +1,11 @@
 use crate::prelude::{mpsc, spawn_local, Receiver, Sender};
-use async_trait::async_trait;
+
 use dodrio::RootRender;
-use dodrio::{Node, RenderContext, Vdom, VdomWeak};
+use dodrio::{VdomWeak};
 use futures::lock::Mutex;
-use futures::prelude::*;
+
 use std::rc::Rc;
-use typed_html::dodrio;
+
 
 pub struct Entity<T> {
     /// data container
@@ -35,10 +35,10 @@ impl<T: 'static> Entity<T> {
         })
     }
 
-    fn event_handle(evt: web_sys::Event, data: Rc<Mutex<T>>, tx: Sender<bool>) {
+    fn event_handle(_evt: web_sys::Event, data: Rc<Mutex<T>>, _tx: Sender<bool>) {
         let fut = async move {
             log::info!("hello!!");
-            let mut data = data.lock().await;
+            let _data = data.lock().await;
         };
         spawn_local(fut);
     }

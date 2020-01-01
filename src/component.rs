@@ -108,7 +108,7 @@ pub trait Component<M, C> {
     fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
 
     // create task after component mounted
-    fn mounted(data_tx: Sender<M>, self_tx: Sender<C>, root_tx: Sender<bool>) {}
+    fn mounted(_data_tx: Sender<M>, _self_tx: Sender<C>, _root_tx: Sender<bool>) {}
 
     /// handle data updates, if needs rerender, will send true to the root queue.
     fn update(&mut self, _: M) -> bool {
