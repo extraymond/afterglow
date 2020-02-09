@@ -1,10 +1,6 @@
 pub mod component;
-pub mod dyn_component;
-pub mod dyn_hub;
 pub mod router;
-pub mod services;
 pub mod styler;
-pub mod threading;
 pub mod utils;
 pub mod views;
 
@@ -17,9 +13,10 @@ pub mod prelude {
     pub use futures::{sink::SinkExt, stream::StreamExt};
     pub use typed_html::{self, dodrio};
     pub use wasm_bindgen::{prelude::*, JsCast};
-    pub use wasm_bindgen_futures::futures_0_3::*;
+    pub use wasm_bindgen_futures::*;
     pub use web_sys::Event;
 }
+
 use cfg_if::*;
 
 cfg_if! {
@@ -48,12 +45,12 @@ cfg_if! {
 #[cfg(test)]
 mod tests {
 
-    use super::use_panic_hook;
+    use super::*;
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test_configure!(run_in_browser);
+
     pub fn init_test() {
-        set_panic_hook();
         femme::start(log::LevelFilter::Info);
     }
 }

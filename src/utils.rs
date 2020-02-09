@@ -1,10 +1,7 @@
-
-
 use js_sys::Promise;
 use wasm_bindgen::{JsCast, JsValue};
 
-use wasm_bindgen_futures::futures_0_3::JsFuture;
-
+use wasm_bindgen_futures::JsFuture;
 
 pub async fn sleep(ms: i32) -> Result<(), JsValue> {
     let promise = Promise::new(&mut |yes, _| {
