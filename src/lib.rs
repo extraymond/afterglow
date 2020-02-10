@@ -1,7 +1,7 @@
 pub mod component;
 // pub mod router;
-// pub mod styler;
-// pub mod utils;
+pub mod styler;
+pub mod utils;
 // pub mod views;
 
 pub mod prelude {
@@ -105,8 +105,8 @@ mod tests {
 
         Ok(())
     }
-    fn init_test() {
-        femme::start(log::LevelFilter::Info).expect("to setup");
+    pub fn init_test() {
+        femme::start(log::LevelFilter::Info);
     }
 
     #[wasm_bindgen_test]
