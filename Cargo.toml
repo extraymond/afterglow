@@ -1,5 +1,5 @@
 [package]
-name = "dodrio_ext"
+name = "dodrio-ext"
 version = "0.1.0"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
@@ -9,7 +9,6 @@ description = "Extension that helps(me at least) increasing productivity when de
 
 [lib]
 crate-type = ["cdylib"]
-
 
 [dependencies]
 wasm-bindgen = { version = "0.2.58", features = ["serde"] }
