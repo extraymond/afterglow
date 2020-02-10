@@ -1,5 +1,5 @@
 [package]
-name = "dodrio-ext"
+name = "dodrio_ext"
 version = "0.1.0"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
