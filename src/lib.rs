@@ -1,7 +1,7 @@
 pub mod component;
 // pub mod router;
 pub mod styler;
-pub mod utils;
+// pub mod utils;
 // pub mod views;
 
 pub mod prelude {
