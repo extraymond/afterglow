@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = { version = "0.2.58", features = ["serde"] }
 dodrio = { git= "https://github.com/fitzgen/dodrio" }
 wasm-bindgen-futures = "0.4.8"
-typed-html = { version = "0.2.2", features = ["dodrio_macro"] }
+typed-html = { path = "/home/extraymond/git/typed-html/typed-html", features = ["dodrio_macro"] }
 js-sys = "0.3.35"
 log = "0.4.8"
 surf = { version = "1.0.3", features = ["wasm-client"] }

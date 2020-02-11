@@ -6,13 +6,13 @@ pub mod styler;
 
 pub mod prelude {
     pub use crate::component::*;
-    pub use dodrio::{Node, RenderContext};
+    pub use dodrio::{self, Node, RenderContext};
     pub use futures::channel::mpsc::{
         self, UnboundedReceiver as Receiver, UnboundedSender as Sender,
     };
     pub use futures::prelude::*;
     pub use typed_html::{self, dodrio};
-    pub use wasm_bindgen::{prelude::*, JsCast};
+    pub use wasm_bindgen::{self, prelude::*, JsCast};
     pub use wasm_bindgen_futures::*;
     pub use web_sys::Event;
 }
