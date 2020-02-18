@@ -92,17 +92,22 @@ where
     T: Render<M, C>,
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-        let data = self.data.try_lock().expect("unable to lock data");
-        data.render(
-            ctx,
-            self.data_tx.clone(),
-            self.self_tx.clone(),
-            self.root_tx.clone(),
-        )
+        let bump = ctx.bump;
+        self.data
+            .try_lock()
+            .map(|data| {
+                data.render(
+                    ctx,
+                    self.data_tx.clone(),
+                    self.self_tx.clone(),
+                    self.root_tx.clone(),
+                )
+            })
+            .unwrap_or(dodrio!(bump, <template></template>))
     }
 }
 
-/// Component depends on associated msg to trigger mutation.
+// Component depends on associated msg to trigger mutation.
 pub trait Component<M, C> {
     // initiate data
     fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
