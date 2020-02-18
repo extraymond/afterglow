@@ -229,6 +229,33 @@ impl MessageHub {
         self.mount_el_rx(root_rx);
     }
 
+    pub fn gen_root_el<T, M: 'static, C: 'static>(&mut self, block: Option<&str>)
+    where
+        Entity<T, M, C>: DodRender,
+        T: Component<M, C> + 'static,
+    {
+        let window = web_sys::window().expect("unable to get window");
+        let document = window.document().expect("unable to get document");
+        let block = if let Some(tag) = block {
+            let block: web_sys::HtmlElement =
+                document.create_element("div").unwrap().dyn_into().unwrap();
+            block.set_id(tag);
+            document
+                .body()
+                .expect("unable to get body")
+                .append_child(&block)
+                .expect("unable to append");
+            block
+        } else {
+            document.body().expect("unable to get body")
+        };
+
+        let (root_tx, root_rx) = self.create_el_pair();
+        let vdom = Vdom::new(&block, Entity::new(T::new(root_tx.clone()), root_tx));
+        self.bind_vdom(vdom);
+        self.mount_el_rx(root_rx);
+    }
+
     /// create a entity.
     pub fn create_el<T, M: 'static, C: 'static>(
         &mut self,
