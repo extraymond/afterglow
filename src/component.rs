@@ -57,11 +57,8 @@ where
         let data_to_el = async move {
             while let Some(msg) = data_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update(msg) {
-                    let rv = root_tx.send(true).await;
-                    if rv.is_err() {
-                        break;
-                    }
+                if data.update(msg) && root_tx.send(true).await.is_err() {
+                    break;
                 }
             }
             root_tx.disconnect();
@@ -79,11 +76,8 @@ where
         let self_to_el = async move {
             while let Some(msg) = self_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update_el(msg) {
-                    let rv = root_tx.send(true).await;
-                    if rv.is_err() {
-                        break;
-                    }
+                if data.update_el(msg) && root_tx.send(true).await.is_err() {
+                    break;
                 }
             }
             root_tx.disconnect();
