@@ -57,8 +57,11 @@ where
         let data_to_el = async move {
             while let Some(msg) = data_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update(msg) && root_tx.send(true).await.is_err() {
-                    break;
+                if data.update(msg) {
+                    let rv = root_tx.send(true).await;
+                    if rv.is_err() {
+                        break;
+                    }
                 }
             }
             root_tx.disconnect();
@@ -76,8 +79,11 @@ where
         let self_to_el = async move {
             while let Some(msg) = self_rx.next().await {
                 let mut data = data_handle.lock().await;
-                if data.update_el(msg) && root_tx.send(true).await.is_err() {
-                    break;
+                if data.update_el(msg) {
+                    let rv = root_tx.send(true).await;
+                    if rv.is_err() {
+                        break;
+                    }
                 }
             }
             root_tx.disconnect();
@@ -110,10 +116,16 @@ where
 // Component depends on associated msg to trigger mutation.
 pub trait Component<M, C> {
     // initiate data
-    fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self;
+    fn new(root_tx: mpsc::UnboundedSender<bool>) -> Self
+    where
+        Self: Sized;
 
     // create task after component mounted
-    fn mounted(_data_tx: Sender<M>, _self_tx: Sender<C>, _root_tx: Sender<bool>) {}
+    fn mounted(_data_tx: Sender<M>, _self_tx: Sender<C>, _root_tx: Sender<bool>)
+    where
+        Self: Sized,
+    {
+    }
 
     /// handle data updates, if needs rerender, will send true to the root queue.
     fn update(&mut self, _: M) -> bool {
