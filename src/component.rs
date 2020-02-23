@@ -1,5 +1,7 @@
 use dodrio::{Render as DodRender, Vdom};
 use futures::lock::Mutex;
+use futures_timer::Delay;
+use std::time::Duration;
 
 use crate::prelude::*;
 use std::rc::Rc;
@@ -43,7 +45,8 @@ where
         el.mount_self_rx(self_rx);
         el.mount_data_rx(data_rx);
         spawn_local(async move {
-            JsFuture::from(js_sys::Promise::resolve(&JsValue::null())).await;
+            Delay::new(Duration::from_millis(0)).await;
+            // JsFuture::from(js_sys::Promise::resolve(&JsValue::null())).await;
             T::mounted(data_tx, self_tx, root_tx);
         });
         el
