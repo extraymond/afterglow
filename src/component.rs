@@ -288,8 +288,10 @@ impl MessageHub {
         let mut hub_tx = self.hub_tx.clone();
         let el_to_root = async move {
             while let Some(msg) = root_rx.next().await {
-                if msg && hub_tx.send(HubMsg::Render).await.is_err() {
-                    break;
+                if msg {
+                    if hub_tx.send(HubMsg::Render).await.is_err() {
+                        break;
+                    }
                 }
             }
             hub_tx.disconnect();
@@ -304,6 +306,7 @@ impl MessageHub {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
+                        let _ = JsFuture::from(js_sys::Promise::resolve(&JsValue::null())).await;
                         vdom.weak().render().await.expect("unable to rerender");
                     }
                     HubMsg::Drop => {
