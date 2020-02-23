@@ -42,7 +42,10 @@ where
         };
         el.mount_self_rx(self_rx);
         el.mount_data_rx(data_rx);
-        T::mounted(data_tx, self_tx, root_tx);
+        spawn_local(async move {
+            JsFuture::from(js_sys::Promise::resolve(&JsValue::null())).await;
+            T::mounted(data_tx, self_tx, root_tx);
+        });
         el
     }
 
@@ -93,6 +96,7 @@ where
 {
     fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = ctx.bump;
+
         self.data
             .try_lock()
             .map(|data| {
@@ -306,7 +310,6 @@ impl MessageHub {
             while let Some(msg) = hub_rx.next().await {
                 match msg {
                     HubMsg::Render => {
-                        let _ = JsFuture::from(js_sys::Promise::resolve(&JsValue::null())).await;
                         vdom.weak().render().await.expect("unable to rerender");
                     }
                     HubMsg::Drop => {
