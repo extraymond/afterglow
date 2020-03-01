@@ -91,11 +91,11 @@ where
 }
 
 /// Default impl for Entity.
-impl<T, M, C> DodRender for Entity<T, M, C>
+impl<'a, T, M, C> DodRender<'a> for Entity<T, M, C>
 where
     T: Render<M, C>,
 {
-    fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
+    fn render(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = ctx.bump;
 
         self.data
@@ -215,7 +215,7 @@ impl MessageHub {
 
     pub fn bind_root_el<T, M: 'static, C: 'static>(&mut self, data: T, block: Option<&str>)
     where
-        Entity<T, M, C>: DodRender,
+        for<'a> Entity<T, M, C>: DodRender<'a>,
         T: Component<M, C> + 'static,
     {
         let window = web_sys::window().expect("unable to get window");
@@ -242,7 +242,7 @@ impl MessageHub {
 
     pub fn gen_root_el<T, M: 'static, C: 'static>(&mut self, block: Option<&str>)
     where
-        Entity<T, M, C>: DodRender,
+        for<'a> Entity<T, M, C>: DodRender<'a>,
         T: Component<M, C> + 'static,
     {
         let window = web_sys::window().expect("unable to get window");
