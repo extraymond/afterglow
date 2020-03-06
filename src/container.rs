@@ -66,7 +66,7 @@ where
 }
 
 pub struct Entry {
-    render_tx: Sender<()>,
+    pub render_tx: Sender<()>,
     render_rx: Option<Receiver<()>>,
 }
 
