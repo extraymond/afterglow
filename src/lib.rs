@@ -1,6 +1,9 @@
 #![recursion_limit = "256"]
 
 pub mod component;
+pub mod container;
+pub mod messenger;
+pub mod renderer;
 // pub mod router;
 // pub mod styler;
 // pub mod utils;
@@ -8,7 +11,7 @@ pub mod component;
 
 pub mod prelude {
     pub use crate::component::*;
-    pub use dodrio::{self, Node, RenderContext};
+    pub use dodrio::{self, bumpalo::format as bf, Node, RenderContext};
     pub use futures::channel::mpsc::{
         self, UnboundedReceiver as Receiver, UnboundedSender as Sender,
     };
@@ -184,9 +187,9 @@ mod tests {
         }
     }
 
-    #[wasm_bindgen_test]
-    fn test_simpl() {
-        init_test();
-        setup_basic().expect("to work");
-    }
+    // #[wasm_bindgen_test]
+    // fn test_simpl() {
+    //     init_test();
+    //     container::test::setup();
+    // }
 }

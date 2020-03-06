@@ -53,7 +53,7 @@ impl ServiceMsg for Client {
 impl ServiceInterface<MessageEvent, String> for Client {}
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::tests::init_test;
 

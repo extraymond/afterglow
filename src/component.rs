@@ -1,7 +1,5 @@
 use dodrio::{Render as DodRender, Vdom};
 use futures::lock::Mutex;
-use futures_timer::Delay;
-use std::time::Duration;
 
 use crate::prelude::*;
 use std::rc::Rc;
@@ -120,18 +118,18 @@ pub trait Component<M, C> {
         Self: Sized;
 
     // create task after component mounted
-    fn mounted(_data_tx: Sender<M>, _self_tx: Sender<C>, _root_tx: Sender<bool>)
+    fn mounted(data_tx: Sender<M>, self_tx: Sender<C>, root_tx: Sender<bool>)
     where
         Self: Sized,
     {
     }
 
     /// handle data updates, if needs rerender, will send true to the root queue.
-    fn update(&mut self, _: M) -> bool {
+    fn update(&mut self, msg: M) -> bool {
         false
     }
     /// handle entity updates, if needs rerender, will send true to the root queue.
-    fn update_el(&mut self, _: C) -> bool {
+    fn update_el(&mut self, msg: C) -> bool {
         false
     }
 }
