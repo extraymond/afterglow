@@ -17,7 +17,6 @@ wasm-bindgen-futures = "0.4.8"
 typed-html = { features = ["dodrio_macro"], version = "0.2.2" }
 js-sys = "0.3.35"
 log = "0.4.8"
-surf = { version = "1.0.3", features = ["wasm-client"] }
 cfg-if = "0.1.10"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 wee_alloc = { version = "0.4.5", optional = true }
@@ -25,7 +24,6 @@ async-trait = "0.1.24"
 futures = "0.3.4"
 thiserror = "1.0.10"
 anyhow = "1.0.26"
-uuid = { vesrion = "0.8.1", features = ["wasm-bindgen", "serde", "v4"]}
 futures-timer ={ version =  "3.0.1", features = ["wasm-bindgen"]}
 
 [dependencies.web-sys]
@@ -37,10 +35,6 @@ features = [
   'Node',
   'Window',
   "Worker",
-  "WorkerGlobalScope",
-  "EventTarget",
-  "CustomEvent",
-  "NodeList"
 ]
 
 [dev-dependencies]

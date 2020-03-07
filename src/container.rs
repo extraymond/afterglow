@@ -168,7 +168,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn messenger::Messenger<Target = Self::Target>>>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -200,7 +200,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn messenger::Messenger<Target = Self::Target>>>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -223,6 +223,8 @@ pub mod tests {
                             }
                         }
                         >
+
+
                         </div>
                     </div>
                 </div>
@@ -237,7 +239,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn messenger::Messenger<Target = Self::Target>>>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let card_view = RenderAsCard.view(target, ctx, sender.clone());
