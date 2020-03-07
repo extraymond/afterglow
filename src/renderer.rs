@@ -18,7 +18,7 @@ impl<A, T> ContextRenderer<A> for T where T: Renderer<Target = A, Data = A> {}
 
 impl<T> Renderer for dyn ContextRenderer<T> {
     type Target = Container<T>;
-    type Data = Container<T>;
+    type Data = T;
 
     fn view<'a>(
         &self,
