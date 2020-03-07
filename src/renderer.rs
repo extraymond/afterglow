@@ -12,29 +12,6 @@ pub trait Renderer {
     ) -> Node<'a>;
 }
 
-pub trait ContainerRenderer<A> {}
-
-impl<A, T> ContainerRenderer<A> for T where T: Renderer<Target = A, Data = A> {}
-
-impl<T> Renderer for dyn ContainerRenderer<T> {
-    type Target = Container<T>;
-    type Data = T;
-
-    fn view<'a>(
-        &self,
-        target: &Self::Target,
-        ctx: &mut RenderContext<'a>,
-        sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
-    ) -> Node<'a> {
-        let bump = ctx.bump;
-        if let Some(data) = target.data.try_lock() {
-            target.renderer.view(&*data, ctx, target.sender.clone())
-        } else {
-            dodrio!(bump, <template></template>)
-        }
-    }
-}
-
 impl<'a, T> dodrio::Render<'a> for Container<T> {
     fn render(&self, cx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = cx.bump;

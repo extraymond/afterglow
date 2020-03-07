@@ -59,16 +59,11 @@ where
     }
 }
 
-impl<T> Container<T> {
-    pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-        let bump = ctx.bump;
-        if let Some(data) = self.data.try_lock() {
-            self.renderer.view(&*data, ctx, self.sender.clone())
-        } else {
-            dodrio!(bump, <template></template>)
-        }
-    }
-}
+// impl<T> Container<T>  {
+//     pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
+//         let rdr: Box<dyn ContainerRenderer<T>> = Box::new(self.renderer);
+//     }
+// }
 
 pub struct Entry {
     pub render_tx: Sender<()>,
