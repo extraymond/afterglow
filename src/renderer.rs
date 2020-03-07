@@ -12,11 +12,11 @@ pub trait Renderer {
     ) -> Node<'a>;
 }
 
-pub trait ContextRenderer<A> {}
+pub trait ContainerRenderer<A> {}
 
-impl<A, T> ContextRenderer<A> for T where T: Renderer<Target = A, Data = A> {}
+impl<A, T> ContainerRenderer<A> for T where T: Renderer<Target = A, Data = A> {}
 
-impl<T> Renderer for dyn ContextRenderer<T> {
+impl<T> Renderer for dyn ContainerRenderer<T> {
     type Target = Container<T>;
     type Data = T;
 
