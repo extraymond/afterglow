@@ -1,4 +1,3 @@
-use crate::container;
 use crate::prelude::*;
 
 pub trait Renderer {
@@ -8,11 +7,11 @@ pub trait Renderer {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Target>>>,
+        sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
     ) -> Node<'a>;
 }
 
-impl<'a, T> dodrio::Render<'a> for container::Container<T> {
+impl<'a, T> dodrio::Render<'a> for Container<T> {
     fn render(&self, cx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = cx.bump;
         if let Some(data) = self.data.try_lock() {
