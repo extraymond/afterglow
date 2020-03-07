@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 pub trait Renderer {
     type Target;
+    type Data;
 
     fn view<'a>(
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+        sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
     ) -> Node<'a>;
 }
 
@@ -37,12 +38,13 @@ mod tests {
 
     impl Renderer for Device {
         type Target = Data;
+        type Data = Data;
 
         fn view<'a>(
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Data>>>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let state = bf!(in bump, "{}", &target.state).into_bump_str();

@@ -6,7 +6,7 @@ use std::rc::Rc;
 pub struct Container<T> {
     pub data: Rc<Mutex<T>>,
     pub sender: Sender<Box<dyn Messenger<Target = T>>>,
-    pub renderer: Box<dyn Renderer<Target = T>>,
+    pub renderer: Box<dyn Renderer<Target = T, Data = T>>,
     pub render_tx: Sender<()>,
 }
 
@@ -19,7 +19,11 @@ impl<T> Container<T>
 where
     T: LifeCycle,
 {
-    pub fn new(data: T, renderer: Box<dyn Renderer<Target = T>>, render_tx: Sender<()>) -> Self
+    pub fn new(
+        data: T,
+        renderer: Box<dyn Renderer<Target = T, Data = T>>,
+        render_tx: Sender<()>,
+    ) -> Self
     where
         T: 'static,
     {
@@ -74,7 +78,7 @@ impl Entry {
         &mut self,
         data: T,
         block: &web_sys::HtmlElement,
-        renderer: Box<dyn Renderer<Target = T>>,
+        renderer: Box<dyn Renderer<Target = T, Data = T>>,
     ) where
         T: 'static,
     {
@@ -150,12 +154,13 @@ pub mod tests {
 
     impl Renderer for RenderAsBox {
         type Target = Model;
+        type Data = Model;
 
         fn view<'a>(
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -182,12 +187,13 @@ pub mod tests {
 
     impl Renderer for RenderAsCard {
         type Target = Model;
+        type Data = Model;
 
         fn view<'a>(
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -221,12 +227,13 @@ pub mod tests {
 
     impl Renderer for MegaViewer {
         type Target = Model;
+        type Data = Model;
 
         fn view<'a>(
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let card_view = RenderAsCard.view(target, ctx, sender.clone());
