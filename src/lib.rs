@@ -1,12 +1,15 @@
 #![recursion_limit = "256"]
 
-pub mod component;
+// pub mod component;
 pub mod container;
 pub mod messenger;
 pub mod renderer;
 
 pub mod prelude {
-    // pub use crate::component::*;
+    pub use crate::container::*;
+    pub use crate::messenger::*;
+    pub use crate::renderer::*;
+
     pub use dodrio::{self, builder::text, bumpalo::format as bf, Node, RenderContext};
     pub use futures::channel::{
         mpsc::{self, UnboundedReceiver as Receiver, UnboundedSender as Sender},
