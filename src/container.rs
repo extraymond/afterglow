@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use dodrio::Vdom;
 use futures::lock::Mutex;
+use gloo::events::EventListener;
 use std::rc::Rc;
 
 pub struct Container<T> {
@@ -8,6 +9,7 @@ pub struct Container<T> {
     pub sender: Sender<Box<dyn Messenger<Target = T>>>,
     pub renderer: Box<dyn Renderer<Target = T, Data = T>>,
     pub render_tx: Sender<()>,
+    handlers: Vec<EventListener>,
 }
 
 pub trait LifeCycle {
@@ -33,6 +35,7 @@ where
             sender,
             renderer,
             render_tx,
+            handlers: vec![],
         };
         container.init_messenger(receiver);
         <T as LifeCycle>::mounted(container.sender.clone(), container.render_tx.clone());
@@ -58,12 +61,6 @@ where
         spawn_local(fut);
     }
 }
-
-// impl<T> Container<T>  {
-//     pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
-//         let rdr: Box<dyn ContainerRenderer<T>> = Box::new(self.renderer);
-//     }
-// }
 
 pub struct Entry {
     pub render_tx: Sender<()>,
