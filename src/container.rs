@@ -9,7 +9,7 @@ pub struct Container<T> {
     pub sender: Sender<Box<dyn Messenger<Target = T>>>,
     pub renderer: Box<dyn Renderer<Target = T, Data = T>>,
     pub render_tx: Sender<()>,
-    handlers: Vec<EventListener>,
+    pub handlers: Vec<EventListener>,
 }
 
 pub trait LifeCycle {
