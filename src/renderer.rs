@@ -12,7 +12,7 @@ pub trait Renderer {
     ) -> Node<'a>;
 }
 
-impl<'a, T> dodrio::Render<'a> for Container<T> {
+impl<'a, T, P> dodrio::Render<'a> for Container<T, P> {
     fn render(&self, cx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = cx.bump;
         if let Some(data) = self.data.try_lock() {

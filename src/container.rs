@@ -4,12 +4,13 @@ use futures::lock::Mutex;
 use gloo::events::EventListener;
 use std::rc::Rc;
 
-pub struct Container<T> {
+pub struct Container<T, P> {
     pub data: Rc<Mutex<T>>,
     pub sender: Sender<Box<dyn Messenger<Target = T>>>,
     pub renderer: Box<dyn Renderer<Target = T, Data = T>>,
     pub render_tx: Sender<()>,
     pub handlers: Vec<EventListener>,
+    pub parent_sender: Option<Sender<Box<dyn Messenger<Target = P>>>>,
 }
 
 pub trait LifeCycle {
@@ -22,7 +23,7 @@ pub trait LifeCycle {
     }
 }
 
-impl<T> Container<T>
+impl<T, P> Container<T, P>
 where
     T: LifeCycle,
 {
@@ -41,6 +42,7 @@ where
             renderer,
             render_tx,
             handlers: vec![],
+            parent_sender: None,
         };
         container.init_messenger(receiver);
         <T as LifeCycle>::mounted(
@@ -71,7 +73,7 @@ where
     }
 }
 
-impl<T> Container<T>
+impl<T, P> Container<T, P>
 where
     T: LifeCycle,
 {
@@ -82,6 +84,16 @@ where
         } else {
             dodrio!(bump, <template></template>)
         }
+    }
+}
+
+impl<T, P> Container<T, P>
+where
+    T: LifeCycle,
+    P: LifeCycle,
+{
+    pub fn mount_parent_sender(&mut self, parent_sender: Sender<Box<dyn Messenger<Target = P>>>) {
+        self.parent_sender.replace(parent_sender);
     }
 }
 
@@ -100,16 +112,17 @@ impl Entry {
         }
     }
 
-    pub fn mount_vdom<T: LifeCycle>(
+    pub fn mount_vdom<T: LifeCycle, P: LifeCycle>(
         &mut self,
         data: T,
         block: &web_sys::HtmlElement,
         renderer: Box<dyn Renderer<Target = T, Data = T>>,
     ) where
         T: 'static,
+        P: 'static,
     {
         let render_tx = self.render_tx.clone();
-        let root_container = Container::new(data, renderer, render_tx.clone());
+        let root_container = Container::<T, P>::new(data, renderer, render_tx.clone());
         let vdom = Vdom::new(&block, root_container);
 
         if let Some(mut render_rx) = self.render_rx.take() {
@@ -133,7 +146,7 @@ pub mod tests {
 
     pub struct Model {
         status: bool,
-        embed: Option<Container<Model>>,
+        embed: Option<Container<Model, Model>>,
     }
 
     impl LifeCycle for Model {
@@ -311,7 +324,7 @@ pub mod tests {
             embed: Some(embed_container),
         };
 
-        entry.mount_vdom(data, &block, Box::new(MegaViewer {}));
+        entry.mount_vdom::<_, Model>(data, &block, Box::new(MegaViewer {}));
     }
 
     use wasm_bindgen_test::*;
