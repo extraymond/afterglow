@@ -24,16 +24,13 @@ pub trait LifeCycle {
 
 impl<T> Container<T>
 where
-    T: LifeCycle,
+    T: LifeCycle + 'static,
 {
     pub fn new(
         data: T,
         renderer: Box<dyn Renderer<Target = T, Data = T>>,
         render_tx: Sender<()>,
-    ) -> Self
-    where
-        T: 'static,
-    {
+    ) -> Self {
         let (sender, receiver) = mpsc::unbounded::<Box<dyn Messenger<Target = T>>>();
         let mut container = Container {
             data: Rc::new(Mutex::new(data)),
@@ -51,10 +48,7 @@ where
         container
     }
 
-    pub fn init_messenger(&self, mut rx: Receiver<Box<dyn Messenger<Target = T>>>)
-    where
-        T: 'static,
-    {
+    pub fn init_messenger(&self, mut rx: Receiver<Box<dyn Messenger<Target = T>>>) {
         let data = self.data.clone();
         let mut render_tx = self.render_tx.clone();
         let fut = async move {
@@ -100,14 +94,13 @@ impl Entry {
         }
     }
 
-    pub fn mount_vdom<T: LifeCycle, P: LifeCycle>(
+    pub fn mount_vdom<T: LifeCycle>(
         &mut self,
         data: T,
         block: &web_sys::HtmlElement,
         renderer: Box<dyn Renderer<Target = T, Data = T>>,
     ) where
         T: 'static,
-        P: 'static,
     {
         let render_tx = self.render_tx.clone();
         let root_container = Container::new(data, renderer, render_tx.clone());
@@ -312,7 +305,7 @@ pub mod tests {
             embed: Some(embed_container),
         };
 
-        entry.mount_vdom::<_, Model>(data, &block, Box::new(MegaViewer {}));
+        entry.mount_vdom(data, &block, Box::new(MegaViewer {}));
     }
 
     use wasm_bindgen_test::*;
