@@ -14,7 +14,12 @@ pub struct Container<T> {
 
 pub trait LifeCycle {
     fn new(render_tx: Sender<()>) -> Self;
-    fn mounted(sender: Sender<Box<dyn Messenger<Target = Self>>>, render_tx: Sender<()>) {}
+    fn mounted(
+        sender: Sender<Box<dyn Messenger<Target = Self>>>,
+        render_tx: Sender<()>,
+        handlers: &mut Vec<EventListener>,
+    ) {
+    }
 }
 
 impl<T> Container<T>
@@ -30,7 +35,7 @@ where
         T: 'static,
     {
         let (sender, receiver) = mpsc::unbounded::<Box<dyn Messenger<Target = T>>>();
-        let container = Container {
+        let mut container = Container {
             data: Rc::new(Mutex::new(data)),
             sender,
             renderer,
@@ -38,7 +43,11 @@ where
             handlers: vec![],
         };
         container.init_messenger(receiver);
-        <T as LifeCycle>::mounted(container.sender.clone(), container.render_tx.clone());
+        <T as LifeCycle>::mounted(
+            container.sender.clone(),
+            container.render_tx.clone(),
+            &mut container.handlers,
+        );
         container
     }
 
@@ -127,7 +136,11 @@ pub mod tests {
             }
         }
 
-        fn mounted(mut sender: Sender<Box<dyn Messenger<Target = Self>>>, render_tx: Sender<()>) {
+        fn mounted(
+            mut sender: Sender<Box<dyn Messenger<Target = Self>>>,
+            render_tx: Sender<()>,
+            handlers: &mut Vec<EventListener>,
+        ) {
             spawn_local(async move {
                 sender.send(Box::new(ClickEvents::clicked)).await.unwrap();
             });
