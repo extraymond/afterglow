@@ -1,11 +1,13 @@
 #![recursion_limit = "256"]
 
 // pub mod component;
+pub mod bus;
 pub mod container;
 pub mod messenger;
 pub mod renderer;
 
 pub mod prelude {
+    pub use crate::bus::*;
     pub use crate::container::*;
     pub use crate::messenger::*;
     pub use crate::renderer::*;
