@@ -64,6 +64,33 @@ where
         spawn_local(fut);
     }
 
+    pub fn new_with_link<R>(
+        data: T,
+        mut remote_sender: Sender<Box<dyn Messenger<Target = R>>>,
+        renderer: Box<dyn Renderer<Target = T, Data = T>>,
+        render_tx: Sender<()>,
+    ) -> Self
+    where
+        Box<dyn Messenger<Target = T>>: Into<Option<Box<dyn Messenger<Target = R>>>>,
+        R: 'static,
+    {
+        let (sender, receiver) = mpsc::unbounded::<Box<dyn Messenger<Target = T>>>();
+        let mut container = Container {
+            data: Rc::new(Mutex::new(data)),
+            sender,
+            renderer,
+            render_tx,
+            handlers: vec![],
+        };
+        <T as LifeCycle>::mounted(
+            container.sender.clone(),
+            container.render_tx.clone(),
+            &mut container.handlers,
+        );
+        container.init_messenger_with_remote(receiver, remote_sender);
+        container
+    }
+
     pub fn init_messenger_with_remote<R>(
         &self,
         mut rx: Receiver<Box<dyn Messenger<Target = T>>>,
