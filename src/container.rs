@@ -202,13 +202,7 @@ pub mod tests {
                 { vec![text(value)] }
                 <div class="button"
                         onclick={
-                            let tx = sender.clone();
-                            move |_, _, _| {
-                                let mut tx = tx.clone();
-                                spawn_local(async move {
-                                    tx.send(Box::new(ClickEvents::clicked)).await.unwrap();
-                                });
-                            }
+                            crate::messenger::consume(|e| {ClickEvents::clicked}, &sender)
                         }
                         >
                         </div>

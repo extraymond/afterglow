@@ -1,4 +1,6 @@
 use crate::prelude::*;
+use async_trait::async_trait;
+use dodrio::{RootRender, VdomWeak};
 use futures::channel::mpsc::unbounded;
 use futures::lock::Mutex;
 use std::sync::Arc;
@@ -12,6 +14,32 @@ pub trait Messenger {
         sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
     ) -> bool {
         false
+    }
+
+    fn dispatch(self, sender: &Sender<Box<dyn Messenger<Target = Self::Target>>>)
+    where
+        Self: Sized + 'static,
+    {
+        let mut sender = sender.clone();
+        let fut = async move {
+            sender.send(Box::new(self)).await;
+        };
+        spawn_local(fut);
+    }
+}
+
+pub fn consume<T, M>(
+    convert: impl Fn(Event) -> M + 'static,
+    sender: &Sender<Box<dyn Messenger<Target = T>>>,
+) -> impl Fn(&mut dyn RootRender, VdomWeak, Event) + 'static
+where
+    M: Messenger<Target = T> + 'static,
+    T: 'static,
+{
+    let sender = sender.clone();
+    move |_, _, event| {
+        let msg = convert(event);
+        msg.dispatch(&sender);
     }
 }
 
