@@ -39,12 +39,12 @@ where
             render_tx,
             handlers: vec![],
         };
-        container.init_messenger(receiver);
         <T as LifeCycle>::mounted(
             container.sender.clone(),
             container.render_tx.clone(),
             &mut container.handlers,
         );
+        container.init_messenger(receiver);
         container
     }
 
@@ -56,6 +56,35 @@ where
                 let mut data_inner = data.lock().await;
                 if msg.update(&mut *data_inner) {
                     if render_tx.send(()).await.is_err() {
+                        break;
+                    }
+                }
+            }
+        };
+        spawn_local(fut);
+    }
+
+    pub fn init_messenger_with_remote<R>(
+        &self,
+        mut rx: Receiver<Box<dyn Messenger<Target = T>>>,
+        mut remote_sender: Sender<Box<dyn Messenger<Target = R>>>,
+    ) where
+        Box<dyn Messenger<Target = T>>: Into<Option<Box<dyn Messenger<Target = R>>>>,
+        R: 'static,
+    {
+        let data = self.data.clone();
+        let mut render_tx = self.render_tx.clone();
+        let fut = async move {
+            while let Some(msg) = rx.next().await {
+                let mut data_inner = data.lock().await;
+                if msg.update(&mut *data_inner) {
+                    if render_tx.send(()).await.is_err() {
+                        break;
+                    }
+                }
+                let remote_msg: Option<Box<dyn Messenger<Target = R>>> = msg.into();
+                if let Some(remote_msg) = remote_msg {
+                    if remote_sender.send(remote_msg).await.is_err() {
                         break;
                     }
                 }
