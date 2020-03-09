@@ -6,7 +6,11 @@ use std::sync::Arc;
 pub trait Messenger {
     type Target;
 
-    fn update(&self, target: &mut Self::Target) -> bool {
+    fn update(
+        &self,
+        target: &mut Self::Target,
+        sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+    ) -> bool {
         false
     }
 }
@@ -34,7 +38,11 @@ mod tests {
     impl Messenger for Msg {
         type Target = Data;
 
-        fn update(&self, target: &mut Self::Target) -> bool {
+        fn update(
+            &self,
+            target: &mut Self::Target,
+            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+        ) -> bool {
             target.button = !target.button;
             true
         }
@@ -43,7 +51,11 @@ mod tests {
     impl Messenger for Msg2 {
         type Target = Data;
 
-        fn update(&self, target: &mut Self::Target) -> bool {
+        fn update(
+            &self,
+            target: &mut Self::Target,
+            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+        ) -> bool {
             log::info!("not sure what to do, {}", target.button);
             false
         }
@@ -57,10 +69,11 @@ mod tests {
         fn start_handling(&self) {
             let (tx, mut rx) = unbounded::<Box<dyn Messenger<Target = Data>>>();
             let data = self.data.clone();
+            let tx_handle = tx.clone();
             let fut = async move {
                 while let Some(msg) = rx.next().await {
                     let mut content = data.lock().await;
-                    msg.update(&mut content);
+                    msg.update(&mut content, tx_handle.clone());
                     log::info!("content value: {}", content.button);
                 }
             };

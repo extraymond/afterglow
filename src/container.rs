@@ -44,17 +44,21 @@ where
             container.render_tx.clone(),
             &mut container.handlers,
         );
-        container.init_messenger(receiver);
+        container.init_messenger(receiver, container.sender.clone());
         container
     }
 
-    pub fn init_messenger(&self, mut rx: Receiver<Box<dyn Messenger<Target = T>>>) {
+    pub fn init_messenger(
+        &self,
+        mut rx: Receiver<Box<dyn Messenger<Target = T>>>,
+        tx: Sender<Box<dyn Messenger<Target = T>>>,
+    ) {
         let data = self.data.clone();
         let mut render_tx = self.render_tx.clone();
         let fut = async move {
             while let Some(msg) = rx.next().await {
                 let mut data_inner = data.lock().await;
-                if msg.update(&mut *data_inner) {
+                if msg.update(&mut *data_inner, tx.clone()) {
                     if render_tx.send(()).await.is_err() {
                         break;
                     }
@@ -162,7 +166,11 @@ pub mod tests {
     impl Messenger for ClickEvents {
         type Target = Model;
 
-        fn update(&self, target: &mut Self::Target) -> bool {
+        fn update(
+            &self,
+            target: &mut Self::Target,
+            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+        ) -> bool {
             match self {
                 ClickEvents::clicked => {
                     target.status = !target.status;
@@ -298,12 +306,7 @@ pub mod tests {
             .unwrap();
 
         let mut entry = Entry::new();
-        let embed_container =
-            Container::new(embed_data, Box::new(RenderAsBox), entry.render_tx.clone());
-        let data = Model {
-            status: true,
-            embed: Some(embed_container),
-        };
+        let data = Model::new(entry.render_tx.clone());
 
         entry.mount_vdom(data, &block, Box::new(MegaViewer {}));
     }

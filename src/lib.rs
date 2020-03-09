@@ -2,10 +2,8 @@
 
 // pub mod component;
 pub mod container;
-pub mod link;
 pub mod messenger;
 pub mod renderer;
-pub mod services;
 
 pub mod prelude {
     pub use crate::container::*;
