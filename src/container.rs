@@ -63,62 +63,6 @@ where
         };
         spawn_local(fut);
     }
-
-    pub fn new_with_link<R>(
-        data: T,
-        mut remote_sender: Sender<Box<dyn Messenger<Target = R>>>,
-        renderer: Box<dyn Renderer<Target = T, Data = T>>,
-        render_tx: Sender<()>,
-    ) -> Self
-    where
-        Box<dyn Messenger<Target = T>>: Into<Option<Box<dyn Messenger<Target = R>>>>,
-        R: 'static,
-    {
-        let (sender, receiver) = mpsc::unbounded::<Box<dyn Messenger<Target = T>>>();
-        let mut container = Container {
-            data: Rc::new(Mutex::new(data)),
-            sender,
-            renderer,
-            render_tx,
-            handlers: vec![],
-        };
-        <T as LifeCycle>::mounted(
-            container.sender.clone(),
-            container.render_tx.clone(),
-            &mut container.handlers,
-        );
-        container.init_messenger_with_remote(receiver, remote_sender);
-        container
-    }
-
-    pub fn init_messenger_with_remote<R>(
-        &self,
-        mut rx: Receiver<Box<dyn Messenger<Target = T>>>,
-        mut remote_sender: Sender<Box<dyn Messenger<Target = R>>>,
-    ) where
-        Box<dyn Messenger<Target = T>>: Into<Option<Box<dyn Messenger<Target = R>>>>,
-        R: 'static,
-    {
-        let data = self.data.clone();
-        let mut render_tx = self.render_tx.clone();
-        let fut = async move {
-            while let Some(msg) = rx.next().await {
-                let mut data_inner = data.lock().await;
-                if msg.update(&mut *data_inner) {
-                    if render_tx.send(()).await.is_err() {
-                        break;
-                    }
-                }
-                let remote_msg: Option<Box<dyn Messenger<Target = R>>> = msg.into();
-                if let Some(remote_msg) = remote_msg {
-                    if remote_sender.send(remote_msg).await.is_err() {
-                        break;
-                    }
-                }
-            }
-        };
-        spawn_local(fut);
-    }
 }
 
 impl<T> Container<T>
