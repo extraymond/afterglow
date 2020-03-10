@@ -14,6 +14,12 @@ pub struct BusService<T> {
     pub bus_tx: Sender<T>,
 }
 
+impl<T: Clone + 'static> Default for BusService<T> {
+    fn default() -> Self {
+        BusService::new()
+    }
+}
+
 impl<T: Clone + 'static> BusService<T> {
     pub fn new() -> Self {
         let bus = Bus::new();
