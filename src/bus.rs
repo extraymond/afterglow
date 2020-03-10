@@ -8,7 +8,7 @@ pub struct Bus<T> {
     pub txs: Rc<Mutex<Vec<Sender<T>>>>,
 }
 
-impl<T: Copy + 'static> Bus<T> {
+impl<T: Clone + 'static> Bus<T> {
     pub fn new() -> Self {
         let (sender, rx) = mpsc::unbounded::<T>();
         let (subs_tx, subs_rx) = mpsc::unbounded::<Sender<T>>();
@@ -34,8 +34,12 @@ impl<T: Copy + 'static> Bus<T> {
         while let Some(msg) = rx.next().await {
             let txs = txs.lock().await;
             stream::iter(txs.iter())
-                .for_each(|tx| async move {
-                    tx.clone().send(msg.clone()).await;
+                .for_each(|tx| {
+                    let mut tx = tx.clone();
+                    let msg = msg.clone();
+                    async move {
+                        tx.send(msg).await;
+                    }
                 })
                 .await;
         }
