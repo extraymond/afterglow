@@ -40,7 +40,7 @@ impl<T: Clone + 'static> BusService<T> {
         });
     }
 
-    pub fn publish<A: 'static>(&self, msg: impl Into<T>) {
+    pub fn publish(&self, msg: impl Into<T>) {
         let bus_msg: T = msg.into();
         let mut bus_tx = self.bus_tx.clone();
         spawn_local(async move {
