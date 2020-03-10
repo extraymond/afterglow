@@ -2,8 +2,10 @@
 
 // pub mod component;
 pub mod bus;
+pub mod composer;
 pub mod container;
 pub mod messenger;
+pub mod node;
 pub mod renderer;
 
 pub mod prelude {
