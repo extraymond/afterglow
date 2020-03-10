@@ -8,6 +8,41 @@ pub struct Bus<T> {
     pub txs: Rc<Mutex<Vec<Sender<T>>>>,
 }
 
+#[derive(Clone)]
+pub struct BusService<T> {
+    pub bus: Rc<Mutex<Bus<T>>>,
+    pub bus_tx: Sender<T>,
+}
+
+impl<T: Clone + 'static> BusService<T> {
+    pub fn new() -> Self {
+        let bus = Bus::new();
+        BusService {
+            bus_tx: bus.sender.clone(),
+            bus: Rc::new(Mutex::new(bus)),
+        }
+    }
+
+    pub fn register<A: 'static>(&self, remote_tx: MessageSender<A>)
+    where
+        T: Into<Message<A>>,
+    {
+        let bus = self.bus.clone();
+        spawn_local(async move {
+            let mut bus = bus.lock().await;
+            bus.mount_proxy(remote_tx);
+        });
+    }
+
+    pub fn publish<A: 'static>(&self, msg: impl Into<T>) {
+        let bus_msg: T = msg.into();
+        let mut bus_tx = self.bus_tx.clone();
+        spawn_local(async move {
+            bus_tx.send(bus_msg).await;
+        });
+    }
+}
+
 impl<T: Clone + 'static> Bus<T> {
     pub fn new() -> Self {
         let (sender, rx) = mpsc::unbounded::<T>();
