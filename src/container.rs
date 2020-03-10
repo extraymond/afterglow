@@ -6,8 +6,8 @@ use std::rc::Rc;
 
 pub struct Container<T> {
     pub data: Rc<Mutex<T>>,
-    pub sender: Sender<Box<dyn Messenger<Target = T>>>,
-    pub renderer: Box<dyn Renderer<Target = T, Data = T>>,
+    pub sender: MessageSender<T>,
+    pub renderer: Render<T, T>,
     pub render_tx: Sender<()>,
     pub handlers: Vec<EventListener>,
 }
@@ -15,7 +15,7 @@ pub struct Container<T> {
 pub trait LifeCycle {
     fn new(render_tx: Sender<()>) -> Self;
     fn mounted(
-        sender: Sender<Box<dyn Messenger<Target = Self>>>,
+        sender: MessageSender<Self>,
         render_tx: Sender<()>,
         handlers: &mut Vec<EventListener>,
     ) {
@@ -26,12 +26,8 @@ impl<T> Container<T>
 where
     T: LifeCycle + 'static,
 {
-    pub fn new(
-        data: T,
-        renderer: Box<dyn Renderer<Target = T, Data = T>>,
-        render_tx: Sender<()>,
-    ) -> Self {
-        let (sender, receiver) = mpsc::unbounded::<Box<dyn Messenger<Target = T>>>();
+    pub fn new(data: T, renderer: Render<T, T>, render_tx: Sender<()>) -> Self {
+        let (sender, receiver) = mpsc::unbounded::<Message<T>>();
         let mut container = Container {
             data: Rc::new(Mutex::new(data)),
             sender,
@@ -48,17 +44,13 @@ where
         container
     }
 
-    pub fn init_messenger(
-        &self,
-        mut rx: Receiver<Box<dyn Messenger<Target = T>>>,
-        tx: Sender<Box<dyn Messenger<Target = T>>>,
-    ) {
+    pub fn init_messenger(&self, mut rx: MessageReceiver<T>, tx: MessageSender<T>) {
         let data = self.data.clone();
         let mut render_tx = self.render_tx.clone();
         let fut = async move {
             while let Some(msg) = rx.next().await {
                 let mut data_inner = data.lock().await;
-                if msg.update(&mut *data_inner, tx.clone()) {
+                if msg.update(&mut *data_inner, tx.clone(), render_tx.clone()) {
                     if render_tx.send(()).await.is_err() {
                         break;
                     }
@@ -102,7 +94,7 @@ impl Entry {
         &mut self,
         data: T,
         block: &web_sys::HtmlElement,
-        renderer: Box<dyn Renderer<Target = T, Data = T>>,
+        renderer: Render<T, T>,
     ) where
         T: 'static,
     {
@@ -153,14 +145,12 @@ pub mod tests {
             render_tx: Sender<()>,
             handlers: &mut Vec<EventListener>,
         ) {
-            spawn_local(async move {
-                sender.send(Box::new(ClickEvents::clicked)).await.unwrap();
-            });
+            ClickEvents::Clicked.dispatch(&sender);
         }
     }
 
     pub enum ClickEvents {
-        clicked,
+        Clicked,
     }
 
     impl Messenger for ClickEvents {
@@ -170,9 +160,10 @@ pub mod tests {
             &self,
             target: &mut Self::Target,
             sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            render_tx: Sender<()>,
         ) -> bool {
             match self {
-                ClickEvents::clicked => {
+                ClickEvents::Clicked => {
                     target.status = !target.status;
                     true
                 }
@@ -202,7 +193,7 @@ pub mod tests {
                 { vec![text(value)] }
                 <div class="button"
                         onclick={
-                            crate::messenger::consume(|e| {ClickEvents::clicked}, &sender)
+                            crate::messenger::consume(|e| {ClickEvents::Clicked}, &sender)
                         }
                         >
                         </div>
@@ -232,18 +223,8 @@ pub mod tests {
                     <div class="card-content">
                         { vec![text(value)] }
                         <div class="button"
-                        onclick={
-                            let tx = sender.clone();
-                            move |_, _, _| {
-                                let mut tx = tx.clone();
-                                spawn_local(async move {
-                                    tx.send(Box::new(ClickEvents::clicked)).await.unwrap();
-                                });
-                            }
-                        }
+                        onclick={ consume(|e| { ClickEvents::Clicked }, &sender) }
                         >
-
-
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+pub type Render<T, D> = Box<dyn Renderer<Target = T, Data = D>>;
+
 pub trait Renderer {
     type Target;
     type Data;
@@ -8,7 +10,7 @@ pub trait Renderer {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
+        sender: MessageSender<Self::Data>,
     ) -> Node<'a>;
 }
 

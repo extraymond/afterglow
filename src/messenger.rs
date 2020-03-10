@@ -3,7 +3,11 @@ use async_trait::async_trait;
 use dodrio::{RootRender, VdomWeak};
 use futures::channel::mpsc::unbounded;
 use futures::lock::Mutex;
-use std::sync::Arc;
+use std::rc::Rc;
+
+pub type Message<T> = Box<dyn Messenger<Target = T>>;
+pub type MessageSender<T> = Sender<Message<T>>;
+pub type MessageReceiver<T> = Receiver<Message<T>>;
 
 pub trait Messenger {
     type Target;
@@ -11,12 +15,13 @@ pub trait Messenger {
     fn update(
         &self,
         target: &mut Self::Target,
-        sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+        sender: MessageSender<Self::Target>,
+        render_tx: Sender<()>,
     ) -> bool {
         false
     }
 
-    fn dispatch(self, sender: &Sender<Box<dyn Messenger<Target = Self::Target>>>)
+    fn dispatch(self, sender: &MessageSender<Self::Target>)
     where
         Self: Sized + 'static,
     {
@@ -30,7 +35,7 @@ pub trait Messenger {
 
 pub fn consume<T, M>(
     convert: impl Fn(Event) -> M + 'static,
-    sender: &Sender<Box<dyn Messenger<Target = T>>>,
+    sender: &MessageSender<T>,
 ) -> impl Fn(&mut dyn RootRender, VdomWeak, Event) + 'static
 where
     M: Messenger<Target = T> + 'static,
@@ -70,6 +75,7 @@ mod tests {
             &self,
             target: &mut Self::Target,
             sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            render_tx: Sender<()>,
         ) -> bool {
             target.button = !target.button;
             true
@@ -83,6 +89,7 @@ mod tests {
             &self,
             target: &mut Self::Target,
             sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            render_tx: Sender<()>,
         ) -> bool {
             log::info!("not sure what to do, {}", target.button);
             false
@@ -90,18 +97,19 @@ mod tests {
     }
 
     pub struct Container<T> {
-        data: Arc<Mutex<T>>,
+        data: Rc<Mutex<T>>,
     }
 
     impl Container<Data> {
         fn start_handling(&self) {
+            let (render_tx, _) = unbounded::<()>();
             let (tx, mut rx) = unbounded::<Box<dyn Messenger<Target = Data>>>();
             let data = self.data.clone();
             let tx_handle = tx.clone();
             let fut = async move {
                 while let Some(msg) = rx.next().await {
                     let mut content = data.lock().await;
-                    msg.update(&mut content, tx_handle.clone());
+                    msg.update(&mut content, tx_handle.clone(), render_tx.clone());
                     log::info!("content value: {}", content.button);
                 }
             };
