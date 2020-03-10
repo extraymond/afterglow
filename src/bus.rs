@@ -41,9 +41,9 @@ impl<T: Copy + 'static> Bus<T> {
         }
     }
 
-    pub fn mount_proxy<A: 'static>(&mut self, remote_tx: Sender<Box<dyn Messenger<Target = A>>>)
+    pub fn mount_proxy<A: 'static>(&mut self, remote_tx: MessageSender<A>)
     where
-        T: Into<Box<dyn Messenger<Target = A>>>,
+        T: Into<Message<A>>,
     {
         let (tx, rx) = mpsc::unbounded::<T>();
         let mut subs_tx = self.subs_tx.clone();
@@ -53,14 +53,12 @@ impl<T: Copy + 'static> Bus<T> {
         });
     }
 
-    pub async fn init_proxy<A>(
-        mut bus_rx: Receiver<T>,
-        mut msg_tx: Sender<Box<dyn Messenger<Target = A>>>,
-    ) where
-        T: Into<Box<dyn Messenger<Target = A>>>,
+    pub async fn init_proxy<A>(mut bus_rx: Receiver<T>, mut msg_tx: MessageSender<A>)
+    where
+        T: Into<Message<A>>,
     {
         while let Some(msg) = bus_rx.next().await {
-            let out_img: Box<dyn Messenger<Target = A>> = msg.into();
+            let out_img: Message<A> = msg.into();
             msg_tx.send(out_img).await.unwrap();
         }
     }

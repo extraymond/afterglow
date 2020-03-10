@@ -141,7 +141,7 @@ pub mod tests {
         }
 
         fn mounted(
-            mut sender: Sender<Box<dyn Messenger<Target = Self>>>,
+            mut sender: MessageSender<Self>,
             render_tx: Sender<()>,
             handlers: &mut Vec<EventListener>,
         ) {
@@ -159,7 +159,7 @@ pub mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: MessageSender<Self::Target>,
             render_tx: Sender<()>,
         ) -> bool {
             match self {
@@ -183,7 +183,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
+            sender: MessageSender<Self::Data>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -210,7 +210,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
+            sender: MessageSender<Self::Data>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -240,7 +240,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn Messenger<Target = Self::Data>>>,
+            sender: MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let card_view = RenderAsCard.view(target, ctx, sender.clone());

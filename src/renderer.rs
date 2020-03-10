@@ -46,7 +46,7 @@ mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: Sender<Box<dyn crate::messenger::Messenger<Target = Self::Data>>>,
+            sender: MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let state = bf!(in bump, "{}", &target.state).into_bump_str();

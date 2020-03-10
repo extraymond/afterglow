@@ -74,7 +74,7 @@ mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: MessageSender<Self::Target>,
             render_tx: Sender<()>,
         ) -> bool {
             target.button = !target.button;
@@ -103,7 +103,7 @@ mod tests {
     impl Container<Data> {
         fn start_handling(&self) {
             let (render_tx, _) = unbounded::<()>();
-            let (tx, mut rx) = unbounded::<Box<dyn Messenger<Target = Data>>>();
+            let (tx, mut rx) = unbounded::<Message<Data>>();
             let data = self.data.clone();
             let tx_handle = tx.clone();
             let fut = async move {
