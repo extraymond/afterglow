@@ -1,6 +1,6 @@
 # Afterglow
 
-Afterglow is a experimental rust frontend framework built upon dodrio and typed-html.
+Afterglow is a experimental rust frontend framework built upon [dodrio](https://github.com/fitzgen/dodrio) and [typed-html](https://github.com/bodil/typed-html/blob/master/typed-html/Cargo.toml)
 
 ## Features
 
