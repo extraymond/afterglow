@@ -44,7 +44,7 @@ impl<T: Clone + 'static> BusService<T> {
         let bus_msg: T = msg.into();
         let mut bus_tx = self.bus_tx.clone();
         spawn_local(async move {
-            bus_tx.send(bus_msg).await;
+            let _ = bus_tx.send(bus_msg).await;
         });
     }
 }

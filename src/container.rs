@@ -90,14 +90,12 @@ impl Entry {
         }
     }
 
-    pub fn mount_vdom<T: LifeCycle>(
+    pub fn mount_vdom<T: LifeCycle + 'static>(
         &mut self,
         data: T,
         block: &web_sys::HtmlElement,
         renderer: Render<T, T>,
-    ) where
-        T: 'static,
-    {
+    ) {
         let render_tx = self.render_tx.clone();
         let root_container = Container::new(data, renderer, render_tx.clone());
         let vdom = Vdom::new(&block, root_container);
@@ -114,6 +112,44 @@ impl Entry {
             };
             spawn_local(rendering);
         }
+    }
+
+    pub fn init_app<
+        T: LifeCycle + 'static,
+        R: Renderer<Target = T, Data = T> + Default + 'static,
+    >(
+        id: &str,
+    ) {
+        let mut entry = Entry::new();
+        let doc = web_sys::window()
+            .map(|win| win.document())
+            .flatten()
+            .expect("unable to find document");
+
+        let block: web_sys::HtmlElement = match doc
+            .get_element_by_id(id)
+            .map(|block| block.unchecked_into::<web_sys::HtmlElement>())
+        {
+            Some(doc) => doc.unchecked_into(),
+            None => {
+                let body = doc.body().expect("unable to get body");
+                let new_block: web_sys::Node = doc
+                    .create_element("div")
+                    .map(|el| {
+                        el.set_id(id);
+                        el.unchecked_into()
+                    })
+                    .expect("unable to create a block with given id");
+
+                body.append_child(&new_block)
+                    .expect("unable to append block");
+
+                new_block.unchecked_into()
+            }
+        };
+
+        let data = T::new(entry.render_tx.clone());
+        entry.mount_vdom(data, &block, Box::new(R::default()));
     }
 }
 
