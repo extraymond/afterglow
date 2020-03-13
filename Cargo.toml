@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
 description = "A rust front-end framework built on typed-html and dodrio. Use trait objects to decouple view/mutation behaviour and data model."
+readme = "./README.md"
+repository = "https://github.com/extraymond/afterglow"
+license = "MPL-2.0"
+categories = ["wasm", "front-end"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
