@@ -2,10 +2,12 @@
 
 pub mod bus;
 pub mod container;
+
 pub mod messenger;
 pub mod renderer;
-// pub mod composer;
-// pub mod node;
+
+#[cfg(feature = "example")]
+pub mod example;
 
 pub mod prelude {
     pub use crate::bus::*;

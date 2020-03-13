@@ -1,9 +1,9 @@
 [package]
-name = "dodrio-ext"
+name = "afterglow"
 version = "0.1.0"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
-description = "Extension that helps(me at least) increasing productivity when developing webapp ontop of dodrio and typed-html."
+description = "A rust front-end framework built on typed-html and dodrio. Use trait objects to decouple view/mutation behaviour and data model."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -45,3 +45,4 @@ gloo = "0.2.0"
 [features]
 default = ["console_error_panic_hook"]
 release = ["console_error_panic_hook", "wee_alloc"]
+example = []
