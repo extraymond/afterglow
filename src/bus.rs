@@ -31,7 +31,7 @@ impl<T: Clone + 'static> BusService<T> {
 
     pub fn register<A: 'static>(&self, remote_tx: MessageSender<A>)
     where
-        T: Into<Message<A>>,
+        T: Into<Option<Message<A>>>,
     {
         let bus = self.bus.clone();
         spawn_local(async move {
@@ -79,7 +79,7 @@ impl<T: Clone + 'static> Bus<T> {
                     let mut tx = tx.clone();
                     let msg = msg.clone();
                     async move {
-                        tx.send(msg).await;
+                        let _ = tx.send(msg).await;
                     }
                 })
                 .await;
@@ -88,23 +88,24 @@ impl<T: Clone + 'static> Bus<T> {
 
     pub fn mount_proxy<A: 'static>(&mut self, remote_tx: MessageSender<A>)
     where
-        T: Into<Message<A>>,
+        T: Into<Option<Message<A>>>,
     {
         let (tx, rx) = mpsc::unbounded::<T>();
         let mut subs_tx = self.subs_tx.clone();
         spawn_local(async move {
-            subs_tx.send(tx).await;
+            let _ = subs_tx.send(tx).await;
             Bus::init_proxy(rx, remote_tx).await;
         });
     }
 
     pub async fn init_proxy<A>(mut bus_rx: Receiver<T>, mut msg_tx: MessageSender<A>)
     where
-        T: Into<Message<A>>,
+        T: Into<Option<Message<A>>>,
     {
         while let Some(msg) = bus_rx.next().await {
-            let out_img: Message<A> = msg.into();
-            msg_tx.send(out_img).await.unwrap();
+            if let Some(out_msg) = msg.into() {
+                let _ = msg_tx.send(out_msg).await;
+            }
         }
     }
 }
