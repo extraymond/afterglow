@@ -18,6 +18,7 @@ pub mod prelude {
         oneshot,
     };
     pub use futures::prelude::*;
+    pub use gloo::events::EventListener;
     pub use typed_html::{self, dodrio};
     pub use wasm_bindgen::{self, prelude::*, JsCast};
     pub use wasm_bindgen_futures::*;

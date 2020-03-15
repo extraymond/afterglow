@@ -51,5 +51,6 @@ release = ["console_error_panic_hook", "wee_alloc"]
 [workspace]
 members = [
   "examples/buttons",
-  "examples/tables"
+  "examples/tables",
+  "examples/msg_bus"
 ]
