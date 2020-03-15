@@ -118,7 +118,7 @@ impl Entry {
         T: LifeCycle + 'static,
         R: Renderer<Target = T, Data = T> + Default + 'static,
     >(
-        id: &str,
+        id: Option<&str>,
     ) {
         let mut entry = Entry::new();
         let doc = web_sys::window()
@@ -126,27 +126,31 @@ impl Entry {
             .flatten()
             .expect("unable to find document");
 
-        let block: web_sys::HtmlElement = match doc
-            .get_element_by_id(id)
-            .map(|block| block.unchecked_into::<web_sys::HtmlElement>())
-        {
-            Some(doc) => doc.unchecked_into(),
-            None => {
-                let body = doc.body().expect("unable to get body");
-                let new_block: web_sys::Node = doc
-                    .create_element("div")
-                    .map(|el| {
-                        el.set_id(id);
-                        el.unchecked_into()
-                    })
-                    .expect("unable to create a block with given id");
+        let block = id
+            .map(|id| {
+                match doc
+                    .get_element_by_id(id)
+                    .map(|block| block.unchecked_into::<web_sys::HtmlElement>())
+                {
+                    Some(doc) => doc.unchecked_into(),
+                    None => {
+                        let body = doc.body().expect("unable to get body");
+                        let new_block: web_sys::Node = doc
+                            .create_element("div")
+                            .map(|el| {
+                                el.set_id(id);
+                                el.unchecked_into()
+                            })
+                            .expect("unable to create a block with given id");
 
-                body.append_child(&new_block)
-                    .expect("unable to append block");
+                        body.append_child(&new_block)
+                            .expect("unable to append block");
 
-                new_block.unchecked_into()
-            }
-        };
+                        new_block.unchecked_into()
+                    }
+                }
+            })
+            .unwrap_or(doc.body().unwrap().unchecked_into::<web_sys::HtmlElement>());
 
         let data = T::new(entry.render_tx.clone());
         entry.mount_vdom(data, &block, Box::new(R::default()));

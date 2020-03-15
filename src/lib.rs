@@ -6,9 +6,6 @@ pub mod container;
 pub mod messenger;
 pub mod renderer;
 
-#[cfg(feature = "example")]
-pub mod example;
-
 pub mod prelude {
     pub use crate::bus::*;
     pub use crate::container::*;
@@ -24,7 +21,7 @@ pub mod prelude {
     pub use typed_html::{self, dodrio};
     pub use wasm_bindgen::{self, prelude::*, JsCast};
     pub use wasm_bindgen_futures::*;
-    pub use web_sys::Event;
+    pub use web_sys::{self, Event};
 }
 use cfg_if::*;
 
@@ -58,8 +55,6 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     pub fn init_test() {
-        if let Err(msg) = femme::start(log::LevelFilter::Info) {
-            log::error!("{}", msg);
-        }
+        let _ = femme::start(log::LevelFilter::Info);
     }
 }

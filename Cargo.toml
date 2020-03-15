@@ -47,4 +47,9 @@ gloo = "0.2.0"
 [features]
 default = ["console_error_panic_hook"]
 release = ["console_error_panic_hook", "wee_alloc"]
-example = []
+
+[workspace]
+members = [
+  "examples/buttons",
+  "examples/tables"
+]
