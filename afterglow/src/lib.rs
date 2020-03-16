@@ -2,10 +2,8 @@
 
 pub mod bus;
 pub mod container;
-
 pub mod messenger;
 pub mod renderer;
-
 pub mod prelude {
     pub use crate::bus::*;
     pub use crate::container::*;
@@ -51,7 +49,6 @@ cfg_if! {
 
 #[cfg(test)]
 mod tests {
-    use super::prelude::*;
     use wasm_bindgen_test::*;
     wasm_bindgen_test_configure!(run_in_browser);
 
