@@ -71,8 +71,8 @@ impl Messenger for ChildMsg {
             }
             ChildMsg::Notified(name) => {
                 if target.name != *name {
-                    target.value +=1;
-                    return true
+                    target.value += 1;
+                    return true;
                 }
             }
             _ => {}
@@ -107,10 +107,9 @@ impl Renderer for ChildView {
     ) -> Node<'a> {
         let bump = ctx.bump;
         let button = if target.name == "local" {
-            let btn  =dodrio!(bump, 
-                <div class="button"
-                onclick={ consume(move |_| { ChildMsg::ValueUpdated }, &sender)}
-                >"add up"</div>);
+            let btn = dodrio!(bump,
+                <div class="button" onclick={ consume(move |_| { ChildMsg::ValueUpdated }, &sender)}>"add up"</div>
+            );
             Some(btn)
         } else {
             None
@@ -130,10 +129,15 @@ impl Renderer for View {
     type Target = Model;
     type Data = Model;
 
-    fn view<'a>(&self, target: &Self::Target, ctx: &mut RenderContext<'a>, sender: MessageSender<Self::Data>) -> Node<'a> {
+    fn view<'a>(
+        &self,
+        target: &Self::Target,
+        ctx: &mut RenderContext<'a>,
+        sender: MessageSender<Self::Data>,
+    ) -> Node<'a> {
         let bump = ctx.bump;
 
-        dodrio!(bump, 
+        dodrio!(bump,
             <div class="columns">
                 <div class="column">{ target.local.render(ctx) }</div>
                 <div class="column">{ target.remote.render(ctx) }</div>

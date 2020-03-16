@@ -100,21 +100,24 @@ impl Model {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
     use wasm_bindgen_test::*;
     wasm_bindgen_test_configure!(run_in_browser);
 
-    fn preload_css() {
+    fn preload_css() -> Result<(), JsValue> {
         let doc = web_sys::window().unwrap().document().unwrap();
         let link = doc.create_element("link").unwrap();
-        link.set_attribute("rel", "stylesheet");
-        link.set_attribute("type", "text/css");
+        link.set_attribute("rel", "stylesheet")?;
+        link.set_attribute("type", "text/css")?;
         link.set_attribute(
             "href",
             "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.css",
-        );
+        )?;
         doc.head().map(|head| {
-            head.append_child(&link.unchecked_into::<web_sys::Node>());
+            let _ = head.append_child(&link.unchecked_into::<web_sys::Node>());
         });
+
+        Ok(())
     }
 
     #[wasm_bindgen_test]
