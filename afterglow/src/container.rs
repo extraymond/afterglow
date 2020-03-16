@@ -4,7 +4,10 @@ use futures::lock::Mutex;
 use gloo::events::EventListener;
 use std::rc::Rc;
 
-pub struct Container<T> {
+pub struct Container<T>
+where
+    T: LifeCycle,
+{
     pub data: Rc<Mutex<T>>,
     pub sender: MessageSender<T>,
     pub renderer: Render<T, T>,
@@ -19,6 +22,19 @@ pub trait LifeCycle {
         render_tx: Sender<()>,
         handlers: &mut Vec<EventListener>,
     ) {
+    }
+
+    fn destroyed(&self, sender: MessageSender<Self>, render_tx: Sender<()>) {}
+}
+
+impl<T> Drop for Container<T>
+where
+    T: LifeCycle,
+{
+    fn drop(&mut self) {
+        self.data.try_lock().as_ref().map(|data| {
+            data.destroyed(self.sender.clone(), self.render_tx.clone());
+        });
     }
 }
 
@@ -119,7 +135,7 @@ impl Entry {
         R: Renderer<Target = T, Data = T> + Default + 'static,
     >(
         id: Option<&str>,
-    ) {
+    ) -> Self {
         let mut entry = Entry::new();
         let doc = web_sys::window()
             .map(|win| win.document())
@@ -154,6 +170,7 @@ impl Entry {
 
         let data = T::new(entry.render_tx.clone());
         entry.mount_vdom(data, &block, Box::new(R::default()));
+        entry
     }
 }
 

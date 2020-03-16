@@ -1,8 +1,9 @@
 use afterglow::prelude::*;
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use url::Url;
 
-pub struct Route<T, R>(pub PhantomData<(T, R)>)
+pub struct Route<T, R>(PhantomData<(T, R)>)
 where
     T: LifeCycle;
 impl<T, R> Default for Route<T, R>
@@ -31,11 +32,35 @@ where
     }
 }
 
-#[derive(Default)]
 pub struct Router {
     pub routes: HashMap<String, Box<dyn Routable>>,
+    rx: Receiver<web_sys::Event>,
+    _onhashchange: EventListener,
 }
 
+impl Default for Router {
+    fn default() -> Self {
+        let win = web_sys::window()
+            .unwrap()
+            .unchecked_into::<web_sys::EventTarget>();
+
+        let (tx, rx) = mpsc::unbounded::<web_sys::Event>();
+
+        let _onhashchange = EventListener::new(&win, "hashchange", move |e| {
+            let e = e.clone();
+            let mut tx = tx.clone();
+            spawn_local(async move {
+                tx.send(e).await.unwrap();
+            });
+        });
+
+        Router {
+            routes: HashMap::new(),
+            rx,
+            _onhashchange,
+        }
+    }
+}
 impl Router {
     pub fn at<T, R>(mut self, path: &str) -> Self
     where
@@ -52,16 +77,94 @@ impl Router {
             route.serve(block);
         }
     }
+
+    pub async fn handling(&mut self, block: &web_sys::HtmlElement) {
+        while let Some(e) = self.rx.next().await {
+            let e = e.unchecked_into::<web_sys::HashChangeEvent>();
+            if let Ok(path) = Url::parse(&e.new_url()) {
+                if let Some(frag) = path.fragment() {
+                    self.route(frag, &block);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test_configure!(run_in_browser);
     pub struct Model;
     impl LifeCycle for Model {
         fn new(render_tx: Sender<()>) -> Self {
             Model
+        }
+    }
+
+    #[derive(Default)]
+    pub struct Mega {
+        model: Option<Container<Model>>,
+        dummy: Option<Container<Dummy>>,
+    }
+
+    impl LifeCycle for Mega {
+        fn new(render_tx: Sender<()>) -> Self {
+            let model = Container::new(
+                Model::new(render_tx.clone()),
+                Box::new(View),
+                render_tx.clone(),
+            );
+            let model = Some(model);
+            let dummy = Container::new(
+                Dummy::new(render_tx.clone()),
+                Box::new(DummyView),
+                render_tx.clone(),
+            );
+            let dummy = Some(dummy);
+
+            Mega { model, dummy }
+        }
+    }
+
+    #[derive(Default)]
+    pub struct MegaView;
+    impl Renderer for MegaView {
+        type Target = Mega;
+        type Data = Mega;
+
+        fn view<'a>(
+            &self,
+            target: &Self::Target,
+            ctx: &mut RenderContext<'a>,
+            sender: MessageSender<Self::Data>,
+        ) -> Node<'a> {
+            let bump = ctx.bump;
+
+            dodrio!(bump,
+                <div class="card">
+                    <div class="box">{ target.model.as_ref().map(|v| v.render(ctx))}</div>
+                    <div class="box">{ target.dummy.as_ref().map(|v| v.render(ctx))}</div>
+                    <a class="button" onclick={ consume(|_| { MegaMsg::RemoveMega},  &sender) }>"remove model"</a>
+                </div>
+            )
+        }
+    }
+
+    pub enum MegaMsg {
+        RemoveMega,
+    }
+    impl Messenger for MegaMsg {
+        type Target = Mega;
+        fn update(
+            &self,
+            target: &mut Self::Target,
+            sender: MessageSender<Self::Target>,
+            render_tx: Sender<()>,
+        ) -> bool {
+            target.model = None;
+            true
         }
     }
 
@@ -109,17 +212,15 @@ mod tests {
         }
     }
 
-    use wasm_bindgen_test::*;
-    wasm_bindgen_test_configure!(run_in_browser);
-    use futures_timer::Delay;
-    use std::time::Duration;
-
     #[wasm_bindgen_test]
     fn test_router() {
+        let _ = femme::start(log::LevelFilter::Info);
         let mut router = Router::default();
         router = router
             .at::<Model, View>("model")
-            .at::<Dummy, DummyView>("dummy");
+            .at::<Dummy, DummyView>("dummy")
+            .at::<Mega, MegaView>("mega");
+
         let block: web_sys::HtmlElement = web_sys::window()
             .unwrap()
             .document()
@@ -129,9 +230,8 @@ mod tests {
             .unchecked_into();
 
         spawn_local(async move {
-            router.route("model", &block);
-            Delay::new(Duration::from_secs(2)).await;
-            router.route("dummy", &block);
+            router.route("mega", &block);
+            router.handling(&block).await;
         });
     }
 }
