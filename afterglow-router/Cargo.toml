@@ -11,8 +11,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 afterglow = { path = "../afterglow" }
-uuid = { version = "0.8.1", features = ["v4"]}
-futures-timer = { version = "3.0.2", features = ["wasm-bindgen"]}
+web-sys = { version = "0.3.36", features = ["HashChangeEvent"]}
+url = "2.1.1"
+log = "0.4.8"
+femme = "1.3.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.9"
+futures-timer = { version = "3.0.2", features = ["wasm-bindgen"]}
