@@ -43,7 +43,7 @@ where
     T: LifeCycle + 'static,
 {
     pub fn new(data: T, renderer: Render<T, T>, render_tx: Sender<()>) -> Self {
-        let (sender, receiver) = mpsc::unbounded::<Message<T>>();
+        let (sender, receiver) = mpsc::unbounded::<(Message<T>, oneshot::Sender<()>)>();
         let mut container = Container {
             data: Rc::new(Mutex::new(data)),
             sender,
@@ -60,18 +60,33 @@ where
         container
     }
 
-    pub fn init_messenger(&self, mut rx: MessageReceiver<T>, tx: MessageSender<T>) {
-        let data = self.data.clone();
-        let mut render_tx = self.render_tx.clone();
+    pub fn init_messenger(&self, rx: MessageReceiver<T>, tx: MessageSender<T>) {
+        let data_handle = self.data.clone();
+        let render_tx_handle = self.render_tx.clone();
+        let tx_handle = tx.clone();
         let fut = async move {
-            while let Some(msg) = rx.next().await {
-                let mut data_inner = data.lock().await;
-                if msg.update(&mut *data_inner, tx.clone(), render_tx.clone()) {
-                    if render_tx.send(()).await.is_err() {
-                        break;
-                    }
+            rx.then(|(msg, inner_tx)| {
+                let data = data_handle.clone();
+                let tx = tx_handle.clone();
+                let render_tx = render_tx_handle.clone();
+                async move {
+                    let mut data_inner = data.lock().await;
+                    let should_render = msg.update(&mut *data_inner, tx, render_tx.clone());
+                    let _ = inner_tx.send(());
+                    (should_render, render_tx.clone())
                 }
-            }
+            })
+            .filter_map(|(render, render_tx)| async move {
+                if render {
+                    Some(render_tx)
+                } else {
+                    None
+                }
+            })
+            .for_each_concurrent(std::usize::MAX, |mut render_tx| async move {
+                render_tx.send(()).await;
+            })
+            .await;
         };
         spawn_local(fut);
     }
@@ -185,15 +200,9 @@ pub mod tests {
 
     impl LifeCycle for Model {
         fn new(render_tx: Sender<()>) -> Self {
-            let embed_model = Model::new(render_tx.clone());
-            let embed = Some(Container::new(
-                embed_model,
-                Box::new(MegaViewer {}),
-                render_tx.clone(),
-            ));
             Model {
                 status: true,
-                embed,
+                embed: None,
             }
         }
 
@@ -202,7 +211,13 @@ pub mod tests {
             render_tx: Sender<()>,
             handlers: &mut Vec<EventListener>,
         ) {
-            ClickEvents::Clicked.dispatch(&sender);
+            let handle1 = ClickEvents::Clicked.dispatch(&sender);
+            let handle2 = ClickEvents::Clicked.dispatch(&sender);
+            // let combined = join(handle1, handle2);
+
+            // spawn_local(async {
+            //     combined.await;
+            // });
         }
     }
 
@@ -221,6 +236,7 @@ pub mod tests {
         ) -> bool {
             match self {
                 ClickEvents::Clicked => {
+                    log::info!("clicked");
                     target.status = !target.status;
                     true
                 }

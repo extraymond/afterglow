@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use async_executors::*;
 use async_trait::async_trait;
 use dodrio::{RootRender, VdomWeak};
 use futures::channel::mpsc::unbounded;
@@ -6,8 +7,8 @@ use futures::lock::Mutex;
 use std::rc::Rc;
 
 pub type Message<T> = Box<dyn Messenger<Target = T>>;
-pub type MessageSender<T> = Sender<Message<T>>;
-pub type MessageReceiver<T> = Receiver<Message<T>>;
+pub type MessageSender<T> = Sender<(Message<T>, oneshot::Sender<()>)>;
+pub type MessageReceiver<T> = Receiver<(Message<T>, oneshot::Sender<()>)>;
 
 pub trait Messenger {
     type Target;
@@ -21,37 +22,20 @@ pub trait Messenger {
         false
     }
 
-    fn dispatch(self, sender: &MessageSender<Self::Target>)
+    fn dispatch(self, sender: &MessageSender<Self::Target>) -> JoinHandle<()>
     where
         Self: Sized + 'static,
     {
+        let executor = Bindgen::new();
         let mut sender = sender.clone();
-        let fut = async move {
-            sender.send(Box::new(self)).await;
-        };
-        spawn_local(fut);
-    }
-
-    fn dispatch_async(
-        self,
-        sender: &MessageSender<Self::Target>,
-        pending_rx: Option<oneshot::Receiver<()>>,
-    ) -> oneshot::Receiver<()>
-    where
-        Self: Sized + 'static,
-    {
-        let (tx, rx) = oneshot::channel::<()>();
-        let mut sender = sender.clone();
-        let fut = async move {
-            if let Some(rx) = pending_rx {
-                let _ = rx.await;
-            }
-
-            let _ = sender.send(Box::new(self)).await;
-            let _ = tx.send(());
-        };
-        spawn_local(fut);
-        rx
+        let task = executor
+            .spawn_handle_local(async move {
+                let (tx, rx) = oneshot::channel::<()>();
+                let _ = sender.send((Box::new(self), tx)).await;
+                rx.await;
+            })
+            .unwrap();
+        task
     }
 }
 
@@ -66,7 +50,7 @@ where
     let sender = sender.clone();
     move |_, _, event| {
         let msg = convert(event);
-        msg.dispatch(&sender);
+        spawn_local(msg.dispatch(&sender));
     }
 }
 
@@ -110,7 +94,10 @@ mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: Sender<Box<dyn Messenger<Target = Self::Target>>>,
+            sender: Sender<(
+                Box<dyn Messenger<Target = Self::Target>>,
+                oneshot::Sender<()>,
+            )>,
             render_tx: Sender<()>,
         ) -> bool {
             log::info!("not sure what to do, {}", target.button);
@@ -125,31 +112,32 @@ mod tests {
     impl Container<Data> {
         fn start_handling(&self) {
             let (render_tx, _) = unbounded::<()>();
-            let (tx, mut rx) = unbounded::<Message<Data>>();
+            let (tx, mut rx) = unbounded::<(Message<Data>, oneshot::Sender<()>)>();
             let data = self.data.clone();
             let tx_handle = tx.clone();
             let fut = async move {
-                while let Some(msg) = rx.next().await {
+                while let Some((msg, ready)) = rx.next().await {
                     let mut content = data.lock().await;
                     msg.update(&mut content, tx_handle.clone(), render_tx.clone());
+                    let _ = ready.send(());
                     log::info!("content value: {}", content.button);
                 }
             };
 
             spawn_local(fut);
 
-            let tx_handle = tx.clone();
-            let mut tx = tx_handle.clone();
-            let mutater = async move {
-                tx.send(Box::new(Msg::Flipit)).await;
-            };
-            spawn_local(mutater);
+            // let tx_handle = tx.clone();
+            // let mut tx = tx_handle.clone();
+            // let mutater = async move {
+            //     tx.send(Box::new(Msg::Flipit)).await;
+            // };
+            // spawn_local(mutater);
 
-            let mut tx = tx_handle.clone();
-            let mutater = async move {
-                tx.send(Box::new(Msg2::Secret)).await;
-            };
-            spawn_local(mutater);
+            // let mut tx = tx_handle.clone();
+            // let mutater = async move {
+            //     tx.send(Box::new(Msg2::Secret)).await;
+            // };
+            // spawn_local(mutater);
         }
     }
 }
