@@ -6,9 +6,3 @@ members = [
   "examples/tables",
   "examples/msg_bus"
 ]
-
-# exclude = [
-#   "examples/buttons",
-#   "examples/tables",
-#   "examples/msg_bus"
-# ]
