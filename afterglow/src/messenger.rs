@@ -31,6 +31,28 @@ pub trait Messenger {
         };
         spawn_local(fut);
     }
+
+    fn dispatch_async(
+        self,
+        sender: &MessageSender<Self::Target>,
+        pending_rx: Option<oneshot::Receiver<()>>,
+    ) -> oneshot::Receiver<()>
+    where
+        Self: Sized + 'static,
+    {
+        let (tx, rx) = oneshot::channel::<()>();
+        let mut sender = sender.clone();
+        let fut = async move {
+            if let Some(rx) = pending_rx {
+                let _ = rx.await;
+            }
+
+            let _ = sender.send(Box::new(self)).await;
+            let _ = tx.send(());
+        };
+        spawn_local(fut);
+        rx
+    }
 }
 
 pub fn consume<T, M>(
