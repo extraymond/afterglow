@@ -37,7 +37,7 @@ impl LifeCycle for Sibling {
         render_tx: Sender<()>,
         handlers: &mut Vec<EventListener>,
     ) {
-        ChildMsg::InitBus.dispatch(&sender);
+        spawn_local(ChildMsg::InitBus.dispatch(&sender));
     }
 }
 
@@ -186,13 +186,13 @@ mod tests {
             "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.css",
         );
         doc.head().map(|head| {
-            head.append_child(&link.unchecked_into::<web_sys::Node>());
+            let _ = head.append_child(&link.unchecked_into::<web_sys::Node>());
         });
     }
 
     #[wasm_bindgen_test]
     fn init() {
         preload_css();
-        Entry::init_app::<Model, HeroView>(None);
+        Entry::init_app::<Model, HeroView>(Some("app"));
     }
 }

@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 pub struct Bus<T> {
     pub sender: Sender<T>,
-    pub subs_tx: Sender<Sender<T>>,
-    pub txs: Rc<Mutex<Vec<Sender<T>>>>,
+    pub subs_tx: Sender<Sender<(T, oneshot::Sender<()>)>>,
+    pub txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
 }
 
 #[derive(Clone)]
@@ -52,7 +52,7 @@ impl<T: Clone + 'static> BusService<T> {
 impl<T: Clone + 'static> Bus<T> {
     pub fn new() -> Self {
         let (sender, rx) = mpsc::unbounded::<T>();
-        let (subs_tx, subs_rx) = mpsc::unbounded::<Sender<T>>();
+        let (subs_tx, subs_rx) = mpsc::unbounded::<Sender<(T, oneshot::Sender<()>)>>();
         let txs = Rc::new(Mutex::new(vec![]));
 
         spawn_local(Bus::handle_register(subs_rx, txs.clone()));
@@ -64,22 +64,30 @@ impl<T: Clone + 'static> Bus<T> {
             txs,
         }
     }
-    pub async fn handle_register(mut rx: Receiver<Sender<T>>, txs: Rc<Mutex<Vec<Sender<T>>>>) {
+    pub async fn handle_register(
+        mut rx: Receiver<Sender<(T, oneshot::Sender<()>)>>,
+        txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
+    ) {
         while let Some(tx) = rx.next().await {
             let mut txs = txs.lock().await;
             txs.push(tx);
         }
     }
 
-    pub async fn handle_broadcast(mut rx: Receiver<T>, txs: Rc<Mutex<Vec<Sender<T>>>>) {
+    pub async fn handle_broadcast(
+        mut rx: Receiver<T>,
+        txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
+    ) {
         while let Some(msg) = rx.next().await {
             let txs = txs.lock().await;
             stream::iter(txs.iter())
-                .for_each(|tx| {
+                .for_each_concurrent(txs.len(), |tx| {
                     let mut tx = tx.clone();
                     let msg = msg.clone();
                     async move {
-                        let _ = tx.send(msg).await;
+                        let (inner_tx, inner_rx) = oneshot::channel::<()>();
+                        let _ = tx.send((msg, inner_tx)).await;
+                        inner_rx.await;
                     }
                 })
                 .await;
@@ -90,7 +98,7 @@ impl<T: Clone + 'static> Bus<T> {
     where
         T: Into<Option<Message<A>>>,
     {
-        let (tx, rx) = mpsc::unbounded::<T>();
+        let (tx, rx) = mpsc::unbounded::<(T, oneshot::Sender<()>)>();
         let mut subs_tx = self.subs_tx.clone();
         spawn_local(async move {
             let _ = subs_tx.send(tx).await;
@@ -98,13 +106,18 @@ impl<T: Clone + 'static> Bus<T> {
         });
     }
 
-    pub async fn init_proxy<A>(mut bus_rx: Receiver<T>, mut msg_tx: MessageSender<A>)
-    where
+    pub async fn init_proxy<A>(
+        mut bus_rx: Receiver<(T, oneshot::Sender<()>)>,
+        mut msg_tx: MessageSender<A>,
+    ) where
         T: Into<Option<Message<A>>>,
     {
-        while let Some(msg) = bus_rx.next().await {
+        while let Some((msg, tx)) = bus_rx.next().await {
             if let Some(out_msg) = msg.into() {
-                let _ = msg_tx.send(out_msg).await;
+                let (inner_tx, inner_rx) = oneshot::channel::<()>();
+                let _ = msg_tx.send((out_msg, inner_tx)).await;
+                inner_rx.await;
+                let _ = tx.send(());
             }
         }
     }
