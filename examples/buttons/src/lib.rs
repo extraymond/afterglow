@@ -5,7 +5,7 @@ pub struct Model {
 }
 
 impl LifeCycle for Model {
-    fn new(render_tx: Sender<()>) -> Self {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
         Model { value: 0 }
     }
 }
@@ -22,7 +22,7 @@ impl Messenger for Msg {
         &self,
         target: &mut Self::Target,
         sender: MessageSender<Self::Target>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         match self {
             Msg::Add => {

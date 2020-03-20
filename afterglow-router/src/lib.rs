@@ -191,7 +191,7 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
     pub struct Model;
     impl LifeCycle for Model {
-        fn new(render_tx: Sender<()>) -> Self {
+        fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
             Model
         }
     }
@@ -203,7 +203,7 @@ mod tests {
     }
 
     impl LifeCycle for Mega {
-        fn new(render_tx: Sender<()>) -> Self {
+        fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
             let model = Container::new(
                 Model::new(render_tx.clone()),
                 Box::new(View),
@@ -256,7 +256,7 @@ mod tests {
             &self,
             target: &mut Self::Target,
             sender: MessageSender<Self::Target>,
-            render_tx: Sender<()>,
+            render_tx: Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             match self {
                 MegaMsg::RemoveMega => {
@@ -291,7 +291,7 @@ mod tests {
         pub arr: [[[i32; 10]; 10]; 10],
     }
     impl LifeCycle for Dummy {
-        fn new(render_tx: Sender<()>) -> Self {
+        fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
             Dummy::default()
         }
     }

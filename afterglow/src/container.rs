@@ -12,20 +12,24 @@ where
     pub data: Rc<Mutex<T>>,
     pub sender: MessageSender<T>,
     pub renderer: Render<T, T>,
-    pub render_tx: Sender<()>,
+    pub render_tx: Sender<((), oneshot::Sender<()>)>,
     pub handlers: Vec<EventListener>,
 }
 
 pub trait LifeCycle {
-    fn new(render_tx: Sender<()>) -> Self;
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self;
     fn mounted(
         sender: MessageSender<Self>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
         handlers: &mut Vec<EventListener>,
     ) {
     }
 
-    fn destroyed(&self, sender: MessageSender<Self>, render_tx: Sender<()>) {}
+    fn destroyed(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+    }
+
+    fn rendererd(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+    }
 }
 
 impl<T> Drop for Container<T>
@@ -43,7 +47,11 @@ impl<T> Container<T>
 where
     T: LifeCycle + 'static,
 {
-    pub fn new(data: T, renderer: Render<T, T>, render_tx: Sender<()>) -> Self {
+    pub fn new(
+        data: T,
+        renderer: Render<T, T>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
+    ) -> Self {
         let (sender, receiver) = mpsc::unbounded::<(Message<T>, oneshot::Sender<()>)>();
         let mut container = Container {
             data: Rc::new(Mutex::new(data)),
@@ -65,7 +73,16 @@ where
         let data_handle = self.data.clone();
         let render_tx_handle = self.render_tx.clone();
         let tx_handle = tx.clone();
+        let sender = self.sender.clone();
         let fut = async move {
+            {
+                let (tx, rx) = oneshot::channel();
+                let _ = render_tx_handle.clone().send(((), tx)).await;
+                let _ = rx.await;
+                let data = data_handle.lock().await;
+                data.rendererd(sender.clone(), render_tx_handle.clone());
+            }
+
             rx.then(|(msg, inner_tx)| {
                 let data = data_handle.clone();
                 let tx = tx_handle.clone();
@@ -85,7 +102,9 @@ where
                 }
             })
             .for_each_concurrent(std::usize::MAX, |mut render_tx| async move {
-                let _ = render_tx.send(()).await;
+                let (tx, rx) = oneshot::channel();
+                let _ = render_tx.send(((), tx)).await;
+                rx.await;
             })
             .await;
         };
@@ -108,9 +127,9 @@ where
 }
 
 pub struct Entry {
-    pub render_tx: Sender<()>,
+    pub render_tx: Sender<((), oneshot::Sender<()>)>,
     pub msg_tx: Sender<EntryMessage>,
-    render_rx: Option<Receiver<()>>,
+    render_rx: Option<Receiver<((), oneshot::Sender<()>)>>,
     msg_rx: Option<Receiver<EntryMessage>>,
 }
 
@@ -121,7 +140,7 @@ pub enum EntryMessage {
 
 impl Entry {
     pub fn new() -> Self {
-        let (render_tx, render_rx) = mpsc::unbounded::<()>();
+        let (render_tx, render_rx) = mpsc::unbounded::<((), oneshot::Sender<()>)>();
         let (msg_tx, msg_rx) = mpsc::unbounded::<EntryMessage>();
 
         Entry {
@@ -150,6 +169,7 @@ impl Entry {
 
                 let vdom = vdom;
                 let weak = vdom.weak().clone();
+
                 rx.then(|msg| async move {
                     match msg {
                         EntryMessage::Eject(tx) => {
@@ -263,7 +283,7 @@ pub mod tests {
     }
 
     impl LifeCycle for Model {
-        fn new(render_tx: Sender<()>) -> Self {
+        fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
             Model {
                 status: true,
                 embed: None,
@@ -272,7 +292,7 @@ pub mod tests {
 
         fn mounted(
             mut sender: MessageSender<Self>,
-            render_tx: Sender<()>,
+            render_tx: Sender<((), oneshot::Sender<()>)>,
             handlers: &mut Vec<EventListener>,
         ) {
             let handle1 = ClickEvents::Clicked.dispatch(&sender);
@@ -296,7 +316,7 @@ pub mod tests {
             &self,
             target: &mut Self::Target,
             sender: MessageSender<Self::Target>,
-            render_tx: Sender<()>,
+            render_tx: Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             match self {
                 ClickEvents::Clicked => {
