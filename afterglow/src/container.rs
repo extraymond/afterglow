@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use async_executors::*;
 use dodrio::Vdom;
 use futures::lock::Mutex;
 use gloo::events::EventListener;
@@ -48,7 +49,7 @@ where
             data: Rc::new(Mutex::new(data)),
             sender,
             renderer,
-            render_tx,
+            render_tx: render_tx.clone(),
             handlers: vec![],
         };
         <T as LifeCycle>::mounted(
@@ -84,7 +85,7 @@ where
                 }
             })
             .for_each_concurrent(std::usize::MAX, |mut render_tx| async move {
-                render_tx.send(()).await;
+                let _ = render_tx.send(()).await;
             })
             .await;
         };
@@ -108,17 +109,87 @@ where
 
 pub struct Entry {
     pub render_tx: Sender<()>,
+    pub msg_tx: Sender<EntryMessage>,
     render_rx: Option<Receiver<()>>,
+    msg_rx: Option<Receiver<EntryMessage>>,
+}
+
+pub enum EntryMessage {
+    Render,
+    Eject(oneshot::Sender<()>),
 }
 
 impl Entry {
     pub fn new() -> Self {
         let (render_tx, render_rx) = mpsc::unbounded::<()>();
+        let (msg_tx, msg_rx) = mpsc::unbounded::<EntryMessage>();
 
         Entry {
+            msg_tx,
             render_tx,
             render_rx: Some(render_rx),
+            msg_rx: Some(msg_rx),
         }
+    }
+
+    fn handle_message<T: LifeCycle + 'static>(
+        &mut self,
+        data: T,
+        block: &web_sys::HtmlElement,
+        renderer: Render<T, T>,
+    ) -> JoinHandle<()> {
+        let rx = self.msg_rx.take().unwrap();
+        let render_tx = self.render_tx.clone();
+        let root_container = Container::new(data, renderer, render_tx.clone());
+        let vdom = Vdom::new(&block, root_container);
+
+        let executor = Bindgen::new();
+        executor
+            .spawn_handle_local(async move {
+                log::trace!("start handling entry");
+
+                let vdom = vdom;
+                let weak = vdom.weak().clone();
+                rx.then(|msg| async move {
+                    match msg {
+                        EntryMessage::Eject(tx) => {
+                            let _ = tx.send(());
+                            None
+                        }
+                        x => Some(x),
+                    }
+                })
+                .take_while(|msg| {
+                    let rv = msg.is_some();
+                    async move { rv }
+                })
+                .for_each(|_| async {
+                    weak.render().await.expect("unable to rerender");
+                })
+                .await;
+                log::trace!("ejected");
+            })
+            .unwrap()
+    }
+
+    fn handle_render(&mut self) -> JoinHandle<()> {
+        let render_rx = self.render_rx.take().unwrap();
+        let msg_tx = self.msg_tx.clone();
+        let executor = Bindgen::new();
+
+        executor
+            .spawn_handle_local(async move {
+                log::trace!("start handling for rendering");
+                render_rx
+                    .for_each(|_| {
+                        let mut msg_tx = msg_tx.clone();
+                        async move {
+                            let _ = msg_tx.send(EntryMessage::Render).await;
+                        }
+                    })
+                    .await;
+            })
+            .unwrap()
     }
 
     pub fn mount_vdom<T: LifeCycle + 'static>(
@@ -127,22 +198,15 @@ impl Entry {
         block: &web_sys::HtmlElement,
         renderer: Render<T, T>,
     ) {
-        let render_tx = self.render_tx.clone();
-        let root_container = Container::new(data, renderer, render_tx.clone());
-        let vdom = Vdom::new(&block, root_container);
+        let render_task = self.handle_render();
+        let msg_task = self.handle_message(data, block, renderer);
 
-        if let Some(mut render_rx) = self.render_rx.take() {
-            let rendering = async move {
-                loop {
-                    if render_rx.next().await.is_some() {
-                        vdom.weak().render().await.expect("unable to rerender");
-                    } else {
-                        break;
-                    }
-                }
-            };
-            spawn_local(rendering);
-        }
+        let main_task = future::select(render_task, msg_task);
+        spawn_local(async {
+            main_task.await;
+            log::trace!("vdom ejected");
+        });
+        log::trace!("vdom mounted");
     }
 
     pub fn init_app<
