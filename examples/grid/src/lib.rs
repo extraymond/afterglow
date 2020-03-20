@@ -5,7 +5,7 @@ pub struct Grid {
     pub blocks: [[bool; 4]; 4],
 }
 impl LifeCycle for Grid {
-    fn new(render_tx: Sender<()>) -> Self {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
         Grid::default()
     }
 }
@@ -21,7 +21,7 @@ impl Messenger for GridMsg {
         &self,
         target: &mut Self::Target,
         sender: MessageSender<Self::Target>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         match self {
             GridMsg::Clicked([x, y]) => {

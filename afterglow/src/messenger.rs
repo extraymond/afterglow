@@ -17,7 +17,7 @@ pub trait Messenger {
         &self,
         target: &mut Self::Target,
         sender: MessageSender<Self::Target>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         false
     }
@@ -81,7 +81,7 @@ mod tests {
             &self,
             target: &mut Self::Target,
             sender: MessageSender<Self::Target>,
-            render_tx: Sender<()>,
+            render_tx: Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             target.button = !target.button;
             true
@@ -98,7 +98,7 @@ mod tests {
                 Box<dyn Messenger<Target = Self::Target>>,
                 oneshot::Sender<()>,
             )>,
-            render_tx: Sender<()>,
+            render_tx: Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             log::info!("not sure what to do, {}", target.button);
             false
@@ -111,7 +111,7 @@ mod tests {
 
     impl Container<Data> {
         fn start_handling(&self) {
-            let (render_tx, _) = unbounded::<()>();
+            let (render_tx, _) = unbounded::<((), oneshot::Sender<()>)>();
             let (tx, mut rx) = unbounded::<(Message<Data>, oneshot::Sender<()>)>();
             let data = self.data.clone();
             let tx_handle = tx.clone();

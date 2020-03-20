@@ -1,4 +1,5 @@
 use afterglow::prelude::*;
+use afterglow_router::{route_to, Router};
 
 pub struct Model {
     pub local: Container<Sibling>,
@@ -6,7 +7,7 @@ pub struct Model {
 }
 
 impl LifeCycle for Model {
-    fn new(render_tx: Sender<()>) -> Self {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
         let bus: BusService<BusMsg> = BusService::new();
         let mut child = Sibling::new(render_tx.clone());
         child.name = "local".to_string();
@@ -28,16 +29,24 @@ pub struct Sibling {
 }
 
 impl LifeCycle for Sibling {
-    fn new(render_tx: Sender<()>) -> Self {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
         Sibling::default()
     }
 
     fn mounted(
         sender: MessageSender<Self>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
         handlers: &mut Vec<EventListener>,
     ) {
         spawn_local(ChildMsg::InitBus.dispatch(&sender));
+        let doc = web_sys::window().unwrap().document().unwrap();
+        let node = doc.query_selector_all("[value]").unwrap();
+    }
+
+    fn rendererd(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+        let doc = web_sys::window().unwrap().document().unwrap();
+        let node = doc.query_selector_all("[value]").unwrap();
+        log::info!("number of find rendered {:?}", node.length());
     }
 }
 
@@ -54,7 +63,7 @@ impl Messenger for ChildMsg {
         &self,
         target: &mut Self::Target,
         sender: MessageSender<Self::Target>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         match self {
             ChildMsg::InitBus => {
@@ -124,6 +133,7 @@ impl Renderer for ChildView {
     }
 }
 
+#[derive(Default)]
 pub struct View;
 impl Renderer for View {
     type Target = Model;
@@ -139,8 +149,8 @@ impl Renderer for View {
 
         dodrio!(bump,
             <div class="columns">
-                <div class="column">{ target.local.render(ctx) }</div>
-                <div class="column">{ target.remote.render(ctx) }</div>
+                <div  class="column">{ target.local.render(ctx) }</div>
+                <div onclick={ route_to("view") } class="column">{ target.remote.render(ctx) }</div>
             </div>
         )
     }
@@ -193,6 +203,14 @@ mod tests {
     #[wasm_bindgen_test]
     fn init() {
         preload_css();
-        Entry::init_app::<Model, HeroView>(Some("app"));
+        let _ = femme::start(log::LevelFilter::Info);
+        spawn_local(async move {
+            let mut router = Router::default()
+                .at::<Model, HeroView>("")
+                .at::<Model, View>("view");
+            router.handling(None).await;
+        });
+
+        //  Entry::init_app::<Model, HeroView>(Some("app"));
     }
 }

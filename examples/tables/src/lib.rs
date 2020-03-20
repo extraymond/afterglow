@@ -9,7 +9,7 @@ pub struct Item {
 }
 
 impl LifeCycle for Model {
-    fn new(render_tx: Sender<()>) -> Self {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
         let rows = (0..10)
             .map(|idx| Item { count: idx as i32 })
             .collect::<Vec<_>>();
@@ -30,7 +30,7 @@ impl Messenger for Msg {
         &self,
         target: &mut Self::Target,
         sender: MessageSender<Self::Target>,
-        render_tx: Sender<()>,
+        render_tx: Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         match self {
             Msg::RowAdded => {
