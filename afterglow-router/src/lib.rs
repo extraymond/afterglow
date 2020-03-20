@@ -21,8 +21,10 @@ where
     }
 }
 
+#[derive(Clone)]
 pub enum RouteEvent {
-    RouteChanged([url::Url; 2]),
+    Manual(String),
+    Native(web_sys::Event),
 }
 
 #[async_trait(?Send)]
@@ -43,36 +45,58 @@ where
 }
 
 pub struct Router {
+    path: Option<String>,
     pub entry: Option<Entry>,
     pub routes: HashMap<String, Box<dyn Routable>>,
-    rx: Receiver<web_sys::Event>,
-    _onhashchange: EventListener,
+    rx: Receiver<RouteEvent>,
+    onpopstate: EventListener,
+    onroutechange: EventListener,
 }
 
 impl Default for Router {
     fn default() -> Self {
+        let mut state = HashMap::<&str, &str>::new();
+        state.insert("path", "");
+
         let win = web_sys::window()
             .unwrap()
             .unchecked_into::<web_sys::EventTarget>();
 
-        let (tx, rx) = mpsc::unbounded::<web_sys::Event>();
+        let (tx, rx) = mpsc::unbounded::<RouteEvent>();
 
-        let _onhashchange = EventListener::new(&win, "hashchange", move |e| {
+        let tx_clone = tx.clone();
+        let onpopstate = EventListener::new(&win, "popstate", move |e| {
             let e = e.clone();
+            let mut tx = tx_clone.clone();
+            spawn_local(async move {
+                tx.send(RouteEvent::Native(e)).await.unwrap();
+            });
+        });
+
+        let onroutechange = EventListener::new(&win, "routechange", move |e| {
+            let content = e
+                .clone()
+                .unchecked_into::<web_sys::CustomEvent>()
+                .detail()
+                .as_string()
+                .unwrap();
             let mut tx = tx.clone();
             spawn_local(async move {
-                tx.send(e).await.unwrap();
+                tx.send(RouteEvent::Manual(content)).await.unwrap();
             });
         });
 
         Router {
+            path: None,
             entry: None,
             routes: HashMap::new(),
             rx,
-            _onhashchange,
+            onpopstate,
+            onroutechange,
         }
     }
 }
+
 impl Router {
     pub fn at<T, R>(mut self, path: &str) -> Self
     where
@@ -84,7 +108,7 @@ impl Router {
         self
     }
 
-    pub async fn routing(&mut self, path: &str, tag: Option<&str>) {
+    pub async fn routing(&mut self, path: &str, tag: Option<&str>) -> bool {
         if let Some(route) = self.routes.get(path) {
             if let Some(old_entry) = self.entry.as_mut() {
                 let (tx, rx) = oneshot::channel::<()>();
@@ -92,21 +116,71 @@ impl Router {
                 let _ = rx.await;
             }
             self.entry.replace(route.serve(tag).await);
+            true
+        } else {
+            false
         }
     }
 
     pub async fn handling(&mut self, tag: Option<&str>) {
+        let win = web_sys::window().unwrap();
+        emit_route("");
+
+        let history = win.history().unwrap();
+
         while let Some(e) = self.rx.next().await {
-            let e = e.unchecked_into::<web_sys::HashChangeEvent>();
-            if let Ok(path) = Url::parse(&e.new_url()) {
-                if let Some(frag) = path.fragment() {
-                    self.routing(frag, tag).await;
+            match e {
+                // native is for going back and match valid path.
+                RouteEvent::Native(e) => {
+                    log::info!("browser routing");
+                    let e = e.unchecked_into::<web_sys::PopStateEvent>();
+                    if let Ok(state) =
+                        serde_wasm_bindgen::from_value::<HashMap<String, String>>(e.state())
+                    {
+                        if let Some(path) = state.get("path") {
+                            self.routing(path, tag).await;
+                        }
+                    }
+                }
+
+                // manual is used to push through new destination.
+                RouteEvent::Manual(path) => {
+                    log::info!("manual routing");
+                    if self.routing(&path, tag).await {
+                        let mut state = HashMap::new();
+                        state.insert("path", path.clone());
+                        history
+                            .push_state_with_url(
+                                &serde_wasm_bindgen::to_value(&state).unwrap(),
+                                "",
+                                Some(&path),
+                            )
+                            .unwrap();
+                    }
                 }
             }
         }
     }
+}
 
-    pub fn init_router(&mut self) {}
+pub fn emit_route(path: &str) {
+    let win = web_sys::window().unwrap();
+    let target = win.clone().unchecked_into::<web_sys::EventTarget>();
+
+    let mut init = web_sys::CustomEventInit::new();
+    init.detail(&JsValue::from_str(path));
+    let event = web_sys::CustomEvent::new_with_event_init_dict("routechange", &init).unwrap();
+    target
+        .dispatch_event(&event.unchecked_into::<web_sys::Event>())
+        .unwrap();
+}
+
+use afterglow::prelude::dodrio::{RootRender, VdomWeak};
+pub fn route_to(path: &str) -> impl Fn(&mut dyn RootRender, VdomWeak, Event) + 'static {
+    let path = path.to_string();
+    move |_, _, _| {
+        emit_route(&path);
+    }
 }
 
 #[cfg(test)]
@@ -164,8 +238,9 @@ mod tests {
             dodrio!(bump,
                 <div class="card">
                     <div class="box">{ target.model.as_ref().map(|v| v.render(ctx))}</div>
+                    <a onclick={ route_to("dummy") }>"go to dummy"</a>
                     <div class="box">{ target.dummy.as_ref().map(|v| v.render(ctx))}</div>
-                    <a class="button" onclick={ consume(|_| { MegaMsg::RemoveMega},  &sender) }>"remove model"</a>
+                    <a class="button" onclick={ consume(|_| { MegaMsg::RemoveMega },  &sender) }>"remove model"</a>
                 </div>
             )
         }
@@ -173,6 +248,7 @@ mod tests {
 
     pub enum MegaMsg {
         RemoveMega,
+        Clicked,
     }
     impl Messenger for MegaMsg {
         type Target = Mega;
@@ -182,8 +258,14 @@ mod tests {
             sender: MessageSender<Self::Target>,
             render_tx: Sender<()>,
         ) -> bool {
-            target.model = None;
-            true
+            match self {
+                MegaMsg::RemoveMega => {
+                    target.model = None;
+                    return true;
+                }
+                _ => {}
+            }
+            false
         }
     }
 
@@ -227,22 +309,22 @@ mod tests {
             sender: MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
-            dodrio!(bump, <div>"this is dummy!!!!!!!"</div>)
+            dodrio!(bump, <div onclick={ route_to("mega") } >"this is dummy!!!!!!!"</div>)
         }
     }
 
     #[wasm_bindgen_test]
     fn test_router() {
-        let _ = femme::start(log::LevelFilter::Trace);
+        let _ = femme::start(log::LevelFilter::Info);
         let mut router = Router::default();
         router = router
             .at::<Model, View>("model")
             .at::<Dummy, DummyView>("dummy")
+            .at::<Mega, MegaView>("")
             .at::<Mega, MegaView>("mega");
 
         spawn_local(async move {
-            router.routing("mega", Some("app")).await;
-            router.handling(Some("app")).await;
+            router.handling(None).await;
         });
     }
 }
