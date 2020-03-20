@@ -4,5 +4,6 @@ members = [
   "afterglow-router",
   "examples/buttons",
   "examples/tables",
-  "examples/msg_bus"
+  "examples/msg_bus",
+  "examples/grid"
 ]

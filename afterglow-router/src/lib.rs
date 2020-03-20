@@ -1,8 +1,13 @@
 use afterglow::prelude::*;
+use async_executors::*;
+use async_trait::async_trait;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::rc::Rc;
 use url::Url;
 
+/// A route that stores type information about the container and it's default renderer
 pub struct Route<T, R>(PhantomData<(T, R)>)
 where
     T: LifeCycle;
@@ -16,23 +21,29 @@ where
     }
 }
 
-pub trait Routable {
-    fn serve(&self, block: &web_sys::HtmlElement);
+pub enum RouteEvent {
+    RouteChanged([url::Url; 2]),
 }
 
+#[async_trait(?Send)]
+/// Route
+pub trait Routable {
+    async fn serve(&self, tag: Option<&str>) -> Entry;
+}
+
+#[async_trait(?Send)]
 impl<T, R> Routable for Route<T, R>
 where
     T: LifeCycle + 'static,
     R: Renderer<Target = T, Data = T> + Default + 'static,
 {
-    fn serve(&self, block: &web_sys::HtmlElement) {
-        let mut entry = Entry::new();
-        let data = T::new(entry.render_tx.clone());
-        entry.mount_vdom(data, block, Box::new(R::default()));
+    async fn serve(&self, tag: Option<&str>) -> Entry {
+        Entry::init_app::<T, R>(tag)
     }
 }
 
 pub struct Router {
+    pub entry: Option<Entry>,
     pub routes: HashMap<String, Box<dyn Routable>>,
     rx: Receiver<web_sys::Event>,
     _onhashchange: EventListener,
@@ -55,6 +66,7 @@ impl Default for Router {
         });
 
         Router {
+            entry: None,
             routes: HashMap::new(),
             rx,
             _onhashchange,
@@ -72,22 +84,29 @@ impl Router {
         self
     }
 
-    pub fn route(&self, path: &str, block: &web_sys::HtmlElement) {
+    pub async fn routing(&mut self, path: &str, tag: Option<&str>) {
         if let Some(route) = self.routes.get(path) {
-            route.serve(block);
+            if let Some(old_entry) = self.entry.as_mut() {
+                let (tx, rx) = oneshot::channel::<()>();
+                let _ = old_entry.msg_tx.send(EntryMessage::Eject(tx)).await;
+                let _ = rx.await;
+            }
+            self.entry.replace(route.serve(tag).await);
         }
     }
 
-    pub async fn handling(&mut self, block: &web_sys::HtmlElement) {
+    pub async fn handling(&mut self, tag: Option<&str>) {
         while let Some(e) = self.rx.next().await {
             let e = e.unchecked_into::<web_sys::HashChangeEvent>();
             if let Ok(path) = Url::parse(&e.new_url()) {
                 if let Some(frag) = path.fragment() {
-                    self.route(frag, &block);
+                    self.routing(frag, tag).await;
                 }
             }
         }
     }
+
+    pub fn init_router(&mut self) {}
 }
 
 #[cfg(test)]
@@ -214,24 +233,16 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_router() {
-        let _ = femme::start(log::LevelFilter::Info);
+        let _ = femme::start(log::LevelFilter::Trace);
         let mut router = Router::default();
         router = router
             .at::<Model, View>("model")
             .at::<Dummy, DummyView>("dummy")
             .at::<Mega, MegaView>("mega");
 
-        let block: web_sys::HtmlElement = web_sys::window()
-            .unwrap()
-            .document()
-            .unwrap()
-            .body()
-            .unwrap()
-            .unchecked_into();
-
         spawn_local(async move {
-            router.route("mega", &block);
-            router.handling(&block).await;
+            router.routing("mega", Some("app")).await;
+            router.handling(Some("app")).await;
         });
     }
 }
