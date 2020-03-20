@@ -11,12 +11,13 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 afterglow = { path = "../afterglow" }
-web-sys = { version = "0.3.36", features = ["HashChangeEvent"]}
+web-sys = { version = "0.3.36", features = ["HashChangeEvent", "PopStateEvent", "History", "PopStateEventInit", "CustomEvent", "CustomEventInit"]}
 url = "2.1.1"
 log = "0.4.8"
 femme = "1.3.0"
 async_executors = { version = "0.2.0", features = ["bindgen", "spawn_handle"]}
 async-trait = "0.1.24"
+serde-wasm-bindgen = "0.1.3"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.9"
