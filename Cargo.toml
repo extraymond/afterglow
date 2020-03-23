@@ -2,6 +2,7 @@
 members = [
   "afterglow",
   "afterglow-router",
+  "afterglow-worker",
   "examples/buttons",
   "examples/tables",
   "examples/msg_bus",

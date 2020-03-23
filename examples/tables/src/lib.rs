@@ -63,7 +63,7 @@ impl Renderer for View {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a> {
         let bump = ctx.bump;
         let row_viewer = RowView::default();
@@ -71,7 +71,7 @@ impl Renderer for View {
             .rows
             .iter()
             .enumerate()
-            .map(|(idx, item)| row_viewer.view(&(idx, item), ctx, sender.clone()));
+            .map(|(idx, item)| row_viewer.view(&(idx, item), ctx, &sender));
         dodrio!(bump,
             <div class="box">
                 <table class="table is-fullwidth">
@@ -106,7 +106,7 @@ impl<'x> Renderer for RowView<'x> {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a> {
         let bump = ctx.bump;
         let row_idx = target.0.clone();
@@ -143,7 +143,7 @@ impl Renderer for HeroView {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a> {
         let bump = ctx.bump;
 

@@ -119,7 +119,7 @@ where
     pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = ctx.bump;
         if let Some(data) = self.data.try_lock() {
-            self.renderer.view(&*data, ctx, self.sender.clone())
+            self.renderer.view(&*data, ctx, &self.sender.clone())
         } else {
             dodrio!(bump, <template></template>)
         }
@@ -340,7 +340,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -367,7 +367,7 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             use dodrio::builder::text;
             let bump = ctx.bump;
@@ -397,20 +397,19 @@ pub mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
-            let card_view = RenderAsCard.view(target, ctx, sender.clone());
-            let box_view = RenderAsBox.view(target, ctx, sender.clone());
+            let card_view = RenderAsCard.view(target, ctx, &sender);
+            let box_view = RenderAsBox.view(target, ctx, &sender);
             let embed_view = target
                 .embed
                 .as_ref()
                 .map(|embed| {
-                    let embed_sender = embed.sender.clone();
                     embed
                         .data
                         .try_lock()
-                        .map(|model| RenderAsBox.view(&model, ctx, embed_sender))
+                        .map(|model| RenderAsBox.view(&model, ctx, &embed.sender))
                 })
                 .flatten();
 

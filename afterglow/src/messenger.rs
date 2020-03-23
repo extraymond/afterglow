@@ -32,7 +32,7 @@ pub trait Messenger {
             .spawn_handle_local(async move {
                 let (tx, rx) = oneshot::channel::<()>();
                 let _ = sender.send((Box::new(self), tx)).await;
-                rx.await;
+                let _ = rx.await;
             })
             .unwrap();
         task
