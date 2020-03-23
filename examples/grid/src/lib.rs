@@ -42,7 +42,7 @@ impl Renderer for GridView {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a> {
         let bump = ctx.bump;
         let x = target.1;
@@ -67,7 +67,7 @@ impl Renderer for Board {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a> {
         let bump = ctx.bump;
 
@@ -83,7 +83,7 @@ impl Renderer for Board {
         for x in 0..4 {
             for y in 0..4 {
                 let val = target.blocks[x][y];
-                views.push(GridView.view(&(val, x, y), ctx, sender.clone()));
+                views.push(GridView.view(&(val, x, y), ctx, &sender));
             }
         }
 

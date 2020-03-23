@@ -10,7 +10,7 @@ pub trait Renderer {
         &self,
         target: &Self::Target,
         ctx: &mut RenderContext<'a>,
-        sender: MessageSender<Self::Data>,
+        sender: &MessageSender<Self::Data>,
     ) -> Node<'a>;
 }
 
@@ -21,7 +21,7 @@ where
     fn render(&self, cx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = cx.bump;
         if let Some(data) = self.data.try_lock() {
-            self.renderer.view(&*data, cx, self.sender.clone())
+            self.renderer.view(&*data, cx, &self.sender)
         } else {
             dodrio!(bump, <template></template>)
         }
@@ -49,7 +49,7 @@ mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             let state = bf!(in bump, "{}", &target.state).into_bump_str();

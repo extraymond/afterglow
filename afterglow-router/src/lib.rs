@@ -231,7 +231,7 @@ mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
 
@@ -279,7 +279,7 @@ mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             dodrio!(bump, <div>"this is model!!!!!!!"</div>)
@@ -306,7 +306,7 @@ mod tests {
             &self,
             target: &Self::Target,
             ctx: &mut RenderContext<'a>,
-            sender: MessageSender<Self::Data>,
+            sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
             dodrio!(bump, <div onclick={ route_to("mega") } >"this is dummy!!!!!!!"</div>)
