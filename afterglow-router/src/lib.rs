@@ -255,8 +255,8 @@ mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: MessageSender<Self::Target>,
-            render_tx: Sender<((), oneshot::Sender<()>)>,
+            sender: &MessageSender<Self::Target>,
+            render_tx: &Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             match self {
                 MegaMsg::RemoveMega => {

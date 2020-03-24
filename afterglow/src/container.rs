@@ -19,16 +19,24 @@ where
 pub trait LifeCycle {
     fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self;
     fn mounted(
-        sender: MessageSender<Self>,
-        render_tx: Sender<((), oneshot::Sender<()>)>,
+        sender: &MessageSender<Self>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
         handlers: &mut Vec<EventListener>,
     ) {
     }
 
-    fn destroyed(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+    fn destroyed(
+        &self,
+        sender: &MessageSender<Self>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
+    ) {
     }
 
-    fn rendererd(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+    fn rendererd(
+        &self,
+        sender: MessageSender<Self>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
+    ) {
     }
 }
 
@@ -38,7 +46,7 @@ where
 {
     fn drop(&mut self) {
         self.data.try_lock().as_ref().map(|data| {
-            data.destroyed(self.sender.clone(), self.render_tx.clone());
+            data.destroyed(&self.sender, &self.render_tx);
         });
     }
 }
@@ -61,8 +69,8 @@ where
             handlers: vec![],
         };
         <T as LifeCycle>::mounted(
-            container.sender.clone(),
-            container.render_tx.clone(),
+            &container.sender,
+            &container.render_tx,
             &mut container.handlers,
         );
         container.init_messenger(receiver, container.sender.clone());
@@ -80,7 +88,7 @@ where
                 let _ = render_tx_handle.clone().send(((), tx)).await;
                 let _ = rx.await;
                 let data = data_handle.lock().await;
-                data.rendererd(sender.clone(), render_tx_handle.clone());
+                data.rendererd(sender.clone(), &render_tx_handle);
             }
 
             rx.then(|(msg, inner_tx)| {
@@ -89,7 +97,7 @@ where
                 let render_tx = render_tx_handle.clone();
                 async move {
                     let mut data_inner = data.lock().await;
-                    let should_render = msg.update(&mut *data_inner, tx, render_tx.clone());
+                    let should_render = msg.update(&mut *data_inner, &tx, &render_tx);
                     let _ = inner_tx.send(());
                     (should_render, render_tx.clone())
                 }
@@ -104,7 +112,7 @@ where
             .for_each_concurrent(std::usize::MAX, |mut render_tx| async move {
                 let (tx, rx) = oneshot::channel();
                 let _ = render_tx.send(((), tx)).await;
-                rx.await;
+                let _ = rx.await;
             })
             .await;
         };
@@ -291,8 +299,8 @@ pub mod tests {
         }
 
         fn mounted(
-            mut sender: MessageSender<Self>,
-            render_tx: Sender<((), oneshot::Sender<()>)>,
+            sender: &MessageSender<Self>,
+            render_tx: &Sender<((), oneshot::Sender<()>)>,
             handlers: &mut Vec<EventListener>,
         ) {
             let handle1 = ClickEvents::Clicked.dispatch(&sender);
@@ -315,8 +323,8 @@ pub mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: MessageSender<Self::Target>,
-            render_tx: Sender<((), oneshot::Sender<()>)>,
+            sender: &MessageSender<Self::Target>,
+            render_tx: &Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             match self {
                 ClickEvents::Clicked => {

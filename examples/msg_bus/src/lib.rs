@@ -34,8 +34,8 @@ impl LifeCycle for Sibling {
     }
 
     fn mounted(
-        sender: MessageSender<Self>,
-        render_tx: Sender<((), oneshot::Sender<()>)>,
+        sender: &MessageSender<Self>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
         handlers: &mut Vec<EventListener>,
     ) {
         spawn_local(ChildMsg::InitBus.dispatch(&sender));
@@ -43,7 +43,11 @@ impl LifeCycle for Sibling {
         let node = doc.query_selector_all("[value]").unwrap();
     }
 
-    fn rendererd(&self, sender: MessageSender<Self>, render_tx: Sender<((), oneshot::Sender<()>)>) {
+    fn rendererd(
+        &self,
+        sender: MessageSender<Self>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
+    ) {
         let doc = web_sys::window().unwrap().document().unwrap();
         let node = doc.query_selector_all("[value]").unwrap();
         log::info!("number of find rendered {:?}", node.length());
@@ -62,13 +66,13 @@ impl Messenger for ChildMsg {
     fn update(
         &self,
         target: &mut Self::Target,
-        sender: MessageSender<Self::Target>,
-        render_tx: Sender<((), oneshot::Sender<()>)>,
+        sender: &MessageSender<Self::Target>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         match self {
             ChildMsg::InitBus => {
                 target.bus.as_ref().map(|bus| {
-                    bus.register(sender);
+                    bus.register(sender.clone());
                 });
             }
             ChildMsg::ValueUpdated => {
