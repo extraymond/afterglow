@@ -16,8 +16,8 @@ pub trait Messenger {
     fn update(
         &self,
         target: &mut Self::Target,
-        sender: MessageSender<Self::Target>,
-        render_tx: Sender<((), oneshot::Sender<()>)>,
+        sender: &MessageSender<Self::Target>,
+        render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
         false
     }
@@ -80,8 +80,8 @@ mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: MessageSender<Self::Target>,
-            render_tx: Sender<((), oneshot::Sender<()>)>,
+            sender: &MessageSender<Self::Target>,
+            render_tx: &Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             target.button = !target.button;
             true
@@ -94,11 +94,11 @@ mod tests {
         fn update(
             &self,
             target: &mut Self::Target,
-            sender: Sender<(
+            sender: &Sender<(
                 Box<dyn Messenger<Target = Self::Target>>,
                 oneshot::Sender<()>,
             )>,
-            render_tx: Sender<((), oneshot::Sender<()>)>,
+            render_tx: &Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
             log::info!("not sure what to do, {}", target.button);
             false
@@ -118,7 +118,7 @@ mod tests {
             let fut = async move {
                 while let Some((msg, ready)) = rx.next().await {
                     let mut content = data.lock().await;
-                    msg.update(&mut content, tx_handle.clone(), render_tx.clone());
+                    msg.update(&mut content, &tx_handle, &render_tx);
                     let _ = ready.send(());
                     log::info!("content value: {}", content.button);
                 }
