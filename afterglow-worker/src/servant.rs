@@ -40,6 +40,7 @@ impl<T> Servant<T> {
     }
 
     pub async fn handle_incoming(&mut self) {
+        log::info!("start listenging");
         self.outer_rx
             .by_ref()
             .for_each(|msg| async move {
@@ -55,7 +56,9 @@ pub fn init_worker() {
     let global = js_sys::global();
     let scope = global.unchecked_into::<web_sys::WorkerGlobalScope>();
     let target = scope.unchecked_ref::<web_sys::DedicatedWorkerGlobalScope>();
-    target.post_message(&JsValue::from("hello!")).unwrap();
+    target
+        .post_message(&JsValue::from("hello"))
+        .expect("unable to callback");
 
     spawn_local(async move {
         let mut servant = Servant::<i32>::new(scope);
