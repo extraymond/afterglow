@@ -53,13 +53,37 @@ where
 
 impl<T> Container<T>
 where
-    T: LifeCycle + 'static,
+    T: LifeCycle,
 {
+    /// Create container with default constructor from model type and renderer type.
+    pub fn default<R: Default + Renderer<Target = T, Data = T> + 'static>(
+        render_tx: Sender<((), oneshot::Sender<()>)>,
+    ) -> Self
+    where
+        T: 'static,
+    {
+        let renderer = Box::new(R::default());
+        let data = T::new(render_tx.clone());
+        let (sender, receiver) = mpsc::unbounded::<(Message<T>, oneshot::Sender<()>)>();
+        let mut container = Container::new(data, renderer, render_tx);
+        <T as LifeCycle>::mounted(
+            &container.sender,
+            &container.render_tx,
+            &mut container.handlers,
+        );
+        container.init_messenger(receiver, container.sender.clone());
+        container
+    }
+
+    /// Create new container with existed data and renderer.
     pub fn new(
         data: T,
         renderer: Render<T, T>,
         render_tx: Sender<((), oneshot::Sender<()>)>,
-    ) -> Self {
+    ) -> Self
+    where
+        T: 'static,
+    {
         let (sender, receiver) = mpsc::unbounded::<(Message<T>, oneshot::Sender<()>)>();
         let mut container = Container {
             data: Rc::new(Mutex::new(data)),
@@ -77,7 +101,11 @@ where
         container
     }
 
-    pub fn init_messenger(&self, rx: MessageReceiver<T>, tx: MessageSender<T>) {
+    /// Start lifecycle handling.
+    pub fn init_messenger(&self, rx: MessageReceiver<T>, tx: MessageSender<T>)
+    where
+        T: 'static,
+    {
         let data_handle = self.data.clone();
         let render_tx_handle = self.render_tx.clone();
         let tx_handle = tx.clone();
@@ -118,12 +146,8 @@ where
         };
         spawn_local(fut);
     }
-}
 
-impl<T> Container<T>
-where
-    T: LifeCycle,
-{
+    /// Provide current view, return template node if currently locked.
     pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = ctx.bump;
         if let Some(data) = self.data.try_lock() {
