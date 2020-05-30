@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
 description = "A rust front-end framework built on typed-html and dodrio. Use trait objects to decouple view/mutation behaviour and data model."
-readme = "./README.md"
+readme = "../README.md"
 repository = "https://github.com/extraymond/afterglow"
-license = "MPL-2.0"
+license = "Apache-2.0/MIT"
 categories = ["wasm", "front-end"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -19,7 +19,6 @@ wasm-bindgen = { version = "0.2.59", features = ["serde"] }
 dodrio = { version = "0.2.0" }
 
 wasm-bindgen-futures = "0.4.9"
-# typed-html = { features = ["dodrio_macro"], git = "https://github.com/bodil/typed-html" }
 typed-html = { features = ["dodrio_macro"], version = "0.2.2" }
 
 js-sys = "0.3.36"
