@@ -1,6 +1,6 @@
 [package]
 name = "afterglow"
-version = "0.1.3-alpha.0"
+version = "0.1.3"
 authors = ["Raymond <extraymond@gmail.com>"]
 edition = "2018"
 description = "A rust front-end framework built on typed-html and dodrio. Use trait objects to decouple view/mutation behaviour and data model."
