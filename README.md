@@ -2,6 +2,11 @@
 
 Afterglow is a experimental rust frontend framework built upon [dodrio](https://github.com/fitzgen/dodrio) and [typed-html](https://github.com/bodil/typed-html/blob/master/typed-html/Cargo.toml)
 
+Demo site build with afterglow:
+
+https://github.com/extraymond/game_reviewer
+
+
 ## Features
 
 1. Virtual-Dom: 
