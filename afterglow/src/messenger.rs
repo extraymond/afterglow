@@ -125,19 +125,6 @@ mod tests {
             };
 
             spawn_local(fut);
-
-            // let tx_handle = tx.clone();
-            // let mut tx = tx_handle.clone();
-            // let mutater = async move {
-            //     tx.send(Box::new(Msg::Flipit)).await;
-            // };
-            // spawn_local(mutater);
-
-            // let mut tx = tx_handle.clone();
-            // let mutater = async move {
-            //     tx.send(Box::new(Msg2::Secret)).await;
-            // };
-            // spawn_local(mutater);
         }
     }
 }

@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 afterglow = { path = "../../afterglow" }
-web-sys = { version = "0.3.36",features = ["HtmlHeadElement"]}
+web-sys = { version = "0.3.45", features = ["HtmlHeadElement"] }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.9"
+wasm-bindgen-test = "0.3.18"

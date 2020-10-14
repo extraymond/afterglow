@@ -1,13 +1,13 @@
 [package]
-name = "afterglow"
-version = "0.1.4-alpha.0"
 authors = ["Raymond <extraymond@gmail.com>"]
-edition = "2018"
+categories = ["wasm"]
 description = "A rust front-end framework built on typed-html and dodrio. Use trait objects to decouple view/mutation behaviour and data model."
+edition = "2018"
+license = "Apache-2.0/MIT"
+name = "afterglow"
 readme = "../README.md"
 repository = "https://github.com/extraymond/afterglow"
-license = "Apache-2.0/MIT"
-categories = ["wasm" ]
+version = "0.1.4-alpha.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,28 +15,23 @@ categories = ["wasm" ]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.59", features = ["serde"] }
-dodrio = { version = "0.2.0" }
+dodrio = {version = "0.2.0"}
+wasm-bindgen = { version = "0.2.68", features = ["serde"] }
 
-wasm-bindgen-futures = "0.4.9"
-typed-html = { features = ["dodrio_macro"], version = "0.2.2" }
+typed-html = {features = ["dodrio_macro"], git = "https://github.com/bodil/typed-html"}
+wasm-bindgen-futures = "0.4.18"
 
-js-sys = "0.3.36"
-log = "0.4.8"
+async-trait = "0.1.24"
+async_executors = {version = "0.2.0", default-features = false, features = ["bindgen", "spawn_handle"]}
 cfg-if = "0.1.10"
-console_error_panic_hook = { version = "0.1.6", optional = true }
-wee_alloc = { version = "0.4.5", optional = true }
+console_error_panic_hook = {version = "0.1.6", optional = true}
 futures = "0.3.4"
 gloo = "0.2.1"
-async-trait = "0.1.24"
-async_executors = { version = "0.2.0", default-features = false, features = ["bindgen", "spawn_handle"] }
-
-[patch.crates-io]
-typed-html = { git = "https://github.com/bodil/typed-html" }
-
+js-sys = "0.3.45"
+log = "0.4.8"
+wee_alloc = {version = "0.4.5", optional = true}
 
 [dependencies.web-sys]
-version = "0.3.36"
 features = [
   'Document',
   'Element',
@@ -45,11 +40,12 @@ features = [
   'Window',
   "Worker",
 ]
+version = "0.3.45"
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.9"
 femme = "1.3.0"
 gloo = "0.2.1"
+wasm-bindgen-test = "0.3.18"
 
 [features]
 default = ["console_error_panic_hook"]

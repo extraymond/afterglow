@@ -8,6 +8,3 @@ members = [
   "examples/msg_bus",
   "examples/grid"
 ]
-
-[patch.crates-io]
-typed-html = { git = "https://github.com/bodil/typed-html" }
