@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 wasm-bindgen-test = "0.3.18"
 log = "0.4.8"
-femme = "1.3.0"
+femme = "2.1.1"
 web-sys = { version = "0.3.45", features = ["WorkerGlobalScope", "MessageEvent", "DedicatedWorkerGlobalScope", "Blob", "WorkerOptions", "Url", "BlobPropertyBag", "Location", "HtmlCanvasElement", "Document", "CanvasRenderingContext2d", "ImageData", "ImageBitmap"] }
 js-sys = "0.3.45"
 wasm-bindgen = "0.2.68"
