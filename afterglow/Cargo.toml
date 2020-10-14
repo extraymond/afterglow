@@ -22,7 +22,7 @@ typed-html = {features = ["dodrio_macro"], git = "https://github.com/bodil/typed
 wasm-bindgen-futures = "0.4.18"
 
 async-trait = "0.1.24"
-async_executors = {version = "0.2.0", default-features = false, features = ["bindgen", "spawn_handle"]}
+async_executors = {version = "0.3.0", default-features = false, features = ["bindgen", "spawn_handle"]}
 cfg-if = "0.1.10"
 console_error_panic_hook = {version = "0.1.6", optional = true}
 futures = "0.3.4"
