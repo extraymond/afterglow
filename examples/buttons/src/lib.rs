@@ -19,12 +19,12 @@ impl Messenger for Msg {
     type Target = Model;
 
     fn update(
-        &self,
+        self: Box<Self>,
         target: &mut Self::Target,
         sender: &MessageSender<Self::Target>,
         render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
-        match self {
+        match *self {
             Msg::Add => {
                 target.value += 1;
                 true

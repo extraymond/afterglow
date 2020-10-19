@@ -18,14 +18,14 @@ impl Messenger for GridMsg {
     type Target = Grid;
 
     fn update(
-        &self,
+        self: Box<Self>,
         target: &mut Self::Target,
         sender: &MessageSender<Self::Target>,
         render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
-        match self {
+        match *self {
             GridMsg::Clicked([x, y]) => {
-                target.blocks[*x][*y] = !target.blocks[*x][*y];
+                target.blocks[x][y] = !target.blocks[x][y];
                 return true;
             }
         }

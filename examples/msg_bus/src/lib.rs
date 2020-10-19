@@ -64,12 +64,12 @@ impl Messenger for ChildMsg {
     type Target = Sibling;
 
     fn update(
-        &self,
+        self: Box<Self>,
         target: &mut Self::Target,
         sender: &MessageSender<Self::Target>,
         render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
-        match self {
+        match *self {
             ChildMsg::InitBus => {
                 target.bus.as_ref().map(|bus| {
                     bus.register(sender.clone());

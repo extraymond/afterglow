@@ -345,12 +345,12 @@ pub mod tests {
         type Target = Model;
 
         fn update(
-            &self,
+            self: Box<Self>,
             target: &mut Self::Target,
             sender: &MessageSender<Self::Target>,
             render_tx: &Sender<((), oneshot::Sender<()>)>,
         ) -> bool {
-            match self {
+            match *self {
                 ClickEvents::Clicked => {
                     log::info!("clicked");
                     target.status = !target.status;

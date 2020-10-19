@@ -14,7 +14,7 @@ pub trait Messenger {
     type Target;
 
     fn update(
-        &self,
+        self: Box<Self>,
         target: &mut Self::Target,
         sender: &MessageSender<Self::Target>,
         render_tx: &Sender<((), oneshot::Sender<()>)>,
@@ -78,7 +78,7 @@ mod tests {
         type Target = Data;
 
         fn update(
-            &self,
+            self: Box<Self>,
             target: &mut Self::Target,
             sender: &MessageSender<Self::Target>,
             render_tx: &Sender<((), oneshot::Sender<()>)>,
@@ -92,7 +92,7 @@ mod tests {
         type Target = Data;
 
         fn update(
-            &self,
+            self: Box<Self>,
             target: &mut Self::Target,
             sender: &Sender<(
                 Box<dyn Messenger<Target = Self::Target>>,

@@ -27,23 +27,23 @@ impl Messenger for Msg {
     type Target = Model;
 
     fn update(
-        &self,
+        self: Box<Self>,
         target: &mut Self::Target,
         sender: &MessageSender<Self::Target>,
         render_tx: &Sender<((), oneshot::Sender<()>)>,
     ) -> bool {
-        match self {
+        match *self {
             Msg::RowAdded => {
                 target.rows.push(Item { count: 0 });
                 true
             }
             Msg::RowRemoved(idx) => {
-                target.rows.remove(*idx);
+                target.rows.remove(idx);
                 true
             }
             Msg::RowUpdated(idx) => target
                 .rows
-                .get_mut(*idx)
+                .get_mut(idx)
                 .map(|item| {
                     item.count += 1;
                     true
