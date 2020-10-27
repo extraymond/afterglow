@@ -26,7 +26,7 @@ pub trait Messenger {
     where
         Self: Sized + 'static,
     {
-        let executor = Bindgen::new();
+        let executor = AsyncStd::new();
         let mut sender = sender.clone();
         let task = executor
             .spawn_handle_local(async move {

@@ -53,6 +53,6 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     pub fn init_test() {
-        let _ = femme::start(log::LevelFilter::Info);
+        let _ = femme::with_level(log::LevelFilter::Info);
     }
 }

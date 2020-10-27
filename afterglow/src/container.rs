@@ -194,7 +194,7 @@ impl Entry {
         let root_container = Container::new(data, renderer, render_tx.clone());
         let vdom = Vdom::new(&block, root_container);
 
-        let executor = Bindgen::new();
+        let executor = AsyncStd::new();
         executor
             .spawn_handle_local(async move {
                 log::trace!("start handling entry");
@@ -227,7 +227,7 @@ impl Entry {
     fn handle_render(&mut self) -> JoinHandle<()> {
         let render_rx = self.render_rx.take().unwrap();
         let msg_tx = self.msg_tx.clone();
-        let executor = Bindgen::new();
+        let executor = AsyncStd::new();
 
         executor
             .spawn_handle_local(async move {
