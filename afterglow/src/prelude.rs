@@ -11,9 +11,6 @@ pub use futures::channel::{
 pub use futures::prelude::*;
 pub use gloo::events::EventListener;
 
-#[cfg(feature = "html-macro")]
-pub use typed_html::{self, dodrio as html};
-
 pub use wasm_bindgen::{self, prelude::*, JsCast};
 pub use wasm_bindgen_futures::*;
 pub use web_sys::{self, Event};

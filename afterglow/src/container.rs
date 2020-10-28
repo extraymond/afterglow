@@ -153,11 +153,6 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, ctx, &self.sender.clone())
         } else {
-            #[cfg(feature = "html-macro")]
-            {
-                html!(bump, <template></template>)
-            }
-
             dodrio::builder::template(bump).finish()
         }
     }
@@ -379,20 +374,22 @@ pub mod tests {
             ctx: &mut RenderContext<'a>,
             sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
-            use dodrio::builder::text;
             let bump = ctx.bump;
             let value = bf!(in bump, "value in box {}", &target.status).into_bump_str();
-            html!(bump,
-                <div class="box">
-                { vec![text(value)] }
-                <div class="button"
-                        onclick={
-                            crate::messenger::consume(|e| {ClickEvents::Clicked}, &sender)
-                        }
-                        >
-                        </div>
-                </div>
-            )
+
+            dodrio::builder::div(bump)
+                .children(vec![
+                    dodrio::builder::div(bump)
+                        .attr("class", "box")
+                        .child(text(value))
+                        .finish(),
+                    dodrio::builder::div(bump)
+                        .attr("class", "button")
+                        .child(text(value))
+                        .on("click", consume(|e| ClickEvents::Clicked, &sender))
+                        .finish(),
+                ])
+                .finish()
         }
     }
 
@@ -406,23 +403,33 @@ pub mod tests {
             ctx: &mut RenderContext<'a>,
             sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
-            use dodrio::builder::text;
             let bump = ctx.bump;
             let value = bf!(in bump, "value in card {}", &target.status).into_bump_str();
-            html!(bump,
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">"this is a card"</p>
-                    </div>
-                    <div class="card-content">
-                        { vec![text(value)] }
-                        <div class="button"
-                        onclick={ consume(|e| { ClickEvents::Clicked }, &sender) }
-                        >
-                        </div>
-                    </div>
-                </div>
-            )
+
+            dodrio::builder::div(bump)
+                .attr("class", "card")
+                .children(vec![
+                    dodrio::builder::div(bump)
+                        .attr("class", "card-header")
+                        .child(
+                            dodrio::builder::p(bump)
+                                .attr("class", "card-header-title")
+                                .child(text("this is a card"))
+                                .finish(),
+                        )
+                        .finish(),
+                    dodrio::builder::div(bump)
+                        .attr("class", "card-content")
+                        .children(vec![
+                            text(value),
+                            dodrio::builder::div(bump)
+                                .attr("class", "button")
+                                .on("click", consume(|e| ClickEvents::Clicked, &sender))
+                                .finish(),
+                        ])
+                        .finish(),
+                ])
+                .finish()
         }
     }
 
@@ -450,14 +457,26 @@ pub mod tests {
                 })
                 .flatten();
 
-            html!(bump,
-                <div class="card">
-                { card_view }
-                // { box_view }
-                { embed_view }
-                <link rel=typed_html::types::LinkType::StyleSheet href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.css"/>
-                </div>
-            )
+            let mut child_nodes = vec![];
+            child_nodes = child_nodes
+                .into_iter()
+                .chain(embed_view.into_iter())
+                .collect::<Vec<_>>();
+            child_nodes.push(
+                dodrio::builder::link(bump)
+                    .attr("rel", "stylesheet")
+                    .attr(
+                        "href",
+                        "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.css",
+                    )
+                    .finish(),
+            );
+            child_nodes.push(card_view);
+            child_nodes.push(box_view);
+
+            log::info!("rendered");
+
+            dodrio::builder::div(bump).children(child_nodes).finish()
         }
     }
 

@@ -1,11 +1,7 @@
 use afterglow::prelude::*;
-use async_executors::*;
 use async_trait::async_trait;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::rc::Rc;
-use url::Url;
 
 /// A route that stores type information about the container and it's default renderer
 pub struct Route<T, R>(PhantomData<(T, R)>)
@@ -134,9 +130,7 @@ impl Router {
                 RouteEvent::Native(e) => {
                     log::info!("browser routing");
                     let e = e.unchecked_into::<web_sys::PopStateEvent>();
-                    if let Ok(state) =
-                        serde_wasm_bindgen::from_value::<HashMap<String, String>>(e.state())
-                    {
+                    if let Ok(state) = JsValue::into_serde::<HashMap<String, String>>(&e.state()) {
                         if let Some(path) = state.get("path") {
                             self.routing(path, tag).await;
                         }
@@ -151,7 +145,7 @@ impl Router {
                         state.insert("path", path.clone());
                         history
                             .push_state_with_url(
-                                &serde_wasm_bindgen::to_value(&state).unwrap(),
+                                &JsValue::from_serde(&state).unwrap(),
                                 "",
                                 Some(&path),
                             )
@@ -165,7 +159,7 @@ impl Router {
 
 pub fn emit_route(path: &str) {
     let win = web_sys::window().unwrap();
-    let target = win.clone().unchecked_into::<web_sys::EventTarget>();
+    let target = win.unchecked_into::<web_sys::EventTarget>();
 
     let mut init = web_sys::CustomEventInit::new();
     init.detail(&JsValue::from_str(path));
@@ -235,14 +229,44 @@ mod tests {
         ) -> Node<'a> {
             let bump = ctx.bump;
 
-            dodrio!(bump,
-                <div class="card">
-                    <div class="box">{ target.model.as_ref().map(|v| v.render(ctx))}</div>
-                    <a onclick={ route_to("dummy") }>"go to dummy"</a>
-                    <div class="box">{ target.dummy.as_ref().map(|v| v.render(ctx))}</div>
-                    <a class="button" onclick={ consume(|_| { MegaMsg::RemoveMega },  &sender) }>"remove model"</a>
-                </div>
-            )
+            dodrio::builder::div(bump)
+                .children(vec![dodrio::builder::div(bump)
+                    .attr("class", "card")
+                    .children(vec![
+                        dodrio::builder::div(bump)
+                            .attr("class", "box")
+                            .children(
+                                target
+                                    .model
+                                    .as_ref()
+                                    .map(|v| v.render(ctx))
+                                    .into_iter()
+                                    .collect::<Vec<Node>>(),
+                            )
+                            .finish(),
+                        dodrio::builder::a(bump)
+                            .on("click", route_to("dummy"))
+                            .child(text("go to dummy"))
+                            .finish(),
+                        dodrio::builder::div(bump)
+                            .attr("class", "box")
+                            .children(
+                                target
+                                    .model
+                                    .as_ref()
+                                    .map(|v| v.render(ctx))
+                                    .into_iter()
+                                    .collect::<Vec<Node>>(),
+                            )
+                            .finish(),
+                        dodrio::builder::a(bump)
+                            .attr("class", "button")
+                            .on("click", consume(|e| MegaMsg::RemoveMega, &sender))
+                            .child(text("remove model"))
+                            .finish(),
+                    ])
+                    .finish()])
+                .finish()
         }
     }
 
@@ -282,7 +306,10 @@ mod tests {
             sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
-            dodrio!(bump, <div>"this is model!!!!!!!"</div>)
+
+            dodrio::builder::div(bump)
+                .child(text("This is model!!!!!"))
+                .finish()
         }
     }
 
@@ -309,7 +336,10 @@ mod tests {
             sender: &MessageSender<Self::Data>,
         ) -> Node<'a> {
             let bump = ctx.bump;
-            dodrio!(bump, <div onclick={ route_to("mega") } >"this is dummy!!!!!!!"</div>)
+            dodrio::builder::div(bump)
+                .on("click", route_to("mega"))
+                .child(text("this is dummy!!!!!!!"))
+                .finish()
         }
     }
 
