@@ -18,7 +18,7 @@ pub mod prelude {
     pub use futures::prelude::*;
     pub use gloo::events::EventListener;
     
-    #[cfg(feature = "typed-html")]
+    #[cfg(feature = "html-macro")]
     pub use typed_html::{self, dodrio};
     
     pub use wasm_bindgen::{self, prelude::*, JsCast};
