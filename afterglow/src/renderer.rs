@@ -23,10 +23,10 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, cx, &self.sender)
         } else {
-            if cfg!(feature = "typed-html") {
+            if cfg!(feature = "html-macro") {
                 dodrio!(bump, <template></template>)
             } else {
-                dodrio::builder::template(bump).finish()            
+                dodrio::builder::template(bump).finish()
             }
                 
         }
