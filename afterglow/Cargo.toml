@@ -48,5 +48,6 @@ gloo = "0.2.1"
 wasm-bindgen-test = "0.3.18"
 
 [features]
-default = ["console_error_panic_hook", "typed-html"]
+default = ["console_error_panic_hook", "html-macro"]
+html-macro = ["typed-html"]
 release = ["console_error_panic_hook", "wee_alloc"]
