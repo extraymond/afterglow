@@ -7,7 +7,7 @@ license = "Apache-2.0/MIT"
 name = "afterglow"
 readme = "../README.md"
 repository = "https://github.com/extraymond/afterglow"
-version = "0.3.0"
+version = "0.3.1-alpha.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
