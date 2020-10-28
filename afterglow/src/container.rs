@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use async_executors::*;
+use async_std::task;
 use dodrio::Vdom;
 use futures::lock::Mutex;
 use gloo::events::EventListener;
@@ -188,60 +188,55 @@ impl Entry {
         data: T,
         block: &web_sys::HtmlElement,
         renderer: Render<T, T>,
-    ) -> JoinHandle<()> {
+    ) -> task::JoinHandle<()> {
         let rx = self.msg_rx.take().unwrap();
         let render_tx = self.render_tx.clone();
         let root_container = Container::new(data, renderer, render_tx.clone());
         let vdom = Vdom::new(&block, root_container);
 
-        let executor = AsyncStd::new();
-        executor
-            .spawn_handle_local(async move {
-                log::trace!("start handling entry");
+        let handle = task::spawn_local(async move {
+            log::trace!("start handling entry");
 
-                let vdom = vdom;
-                let weak = vdom.weak().clone();
+            let vdom = vdom;
+            let weak = vdom.weak().clone();
 
-                rx.then(|msg| async move {
-                    match msg {
-                        EntryMessage::Eject(tx) => {
-                            let _ = tx.send(());
-                            None
-                        }
-                        x => Some(x),
+            rx.then(|msg| async move {
+                match msg {
+                    EntryMessage::Eject(tx) => {
+                        let _ = tx.send(());
+                        None
                     }
-                })
-                .take_while(|msg| {
-                    let rv = msg.is_some();
-                    async move { rv }
-                })
-                .for_each(|_| async {
-                    weak.render().await.expect("unable to rerender");
-                })
-                .await;
-                log::trace!("ejected");
+                    x => Some(x),
+                }
             })
-            .unwrap()
+            .take_while(|msg| {
+                let rv = msg.is_some();
+                async move { rv }
+            })
+            .for_each(|_| async {
+                weak.render().await.expect("unable to rerender");
+            })
+            .await;
+            log::trace!("ejected");
+        });
+        handle
     }
 
-    fn handle_render(&mut self) -> JoinHandle<()> {
+    fn handle_render(&mut self) -> task::JoinHandle<()> {
         let render_rx = self.render_rx.take().unwrap();
         let msg_tx = self.msg_tx.clone();
-        let executor = AsyncStd::new();
 
-        executor
-            .spawn_handle_local(async move {
-                log::trace!("start handling for rendering");
-                render_rx
-                    .for_each(|_| {
-                        let mut msg_tx = msg_tx.clone();
-                        async move {
-                            let _ = msg_tx.send(EntryMessage::Render).await;
-                        }
-                    })
-                    .await;
-            })
-            .unwrap()
+        task::spawn_local(async move {
+            log::trace!("start handling for rendering");
+            render_rx
+                .for_each(|_| {
+                    let mut msg_tx = msg_tx.clone();
+                    async move {
+                        let _ = msg_tx.send(EntryMessage::Render).await;
+                    }
+                })
+                .await;
+        })
     }
 
     pub fn mount_vdom<T: LifeCycle + 'static>(

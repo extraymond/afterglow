@@ -19,8 +19,8 @@ dodrio = {version = "0.2.0"}
 wasm-bindgen = {version = "0.2.68", features = ["serde"]}
 wasm-bindgen-futures = "0.4.18"
 
+async-std = {version = "1.6.5", features = ["unstable"]}
 async-trait = "0.1.41"
-async_executors = {version = "0.3.0", default-features = false, features = ["async_std"]}
 futures = "0.3.7"
 gloo = "0.2.1"
 js-sys = "0.3.45"

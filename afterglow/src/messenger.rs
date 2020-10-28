@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use async_executors::*;
+use async_std::task;
 use async_trait::async_trait;
 use dodrio::{RootRender, VdomWeak};
 use futures::channel::mpsc::unbounded;
@@ -22,19 +22,16 @@ pub trait Messenger {
         false
     }
 
-    fn dispatch(self, sender: &MessageSender<Self::Target>) -> JoinHandle<()>
+    fn dispatch(self, sender: &MessageSender<Self::Target>) -> task::JoinHandle<()>
     where
         Self: Sized + 'static,
     {
-        let executor = AsyncStd::new();
         let mut sender = sender.clone();
-        let task = executor
-            .spawn_handle_local(async move {
-                let (tx, rx) = oneshot::channel::<()>();
-                let _ = sender.send((Box::new(self), tx)).await;
-                let _ = rx.await;
-            })
-            .unwrap();
+        let task = task::spawn_local(async move {
+            let (tx, rx) = oneshot::channel::<()>();
+            let _ = sender.send((Box::new(self), tx)).await;
+            let _ = rx.await;
+        });
         task
     }
 }
