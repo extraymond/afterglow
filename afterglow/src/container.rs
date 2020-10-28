@@ -153,7 +153,11 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, ctx, &self.sender.clone())
         } else {
-            dodrio!(bump, <template></template>)
+            if cfg!(feature = "html-macro") {
+                dodrio!(bump, <template></template>)
+            } else {
+                dodrio::builder::template(bump).finish()
+            }        
         }
     }
 }
