@@ -23,7 +23,12 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, cx, &self.sender)
         } else {
-            dodrio!(bump, <template></template>)
+            if cfg(feature = "typed-html") {
+                dodrio!(bump, <template></template>)
+            } else {
+                dodrio::builder::template(bump).finish()            
+            }
+                
         }
     }
 }
