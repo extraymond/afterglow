@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 dodrio = {version = "0.2.0"}
 wasm-bindgen = {version = "0.2.68", features = ["serde"]}
 
-typed-html = {features = ["dodrio_macro"], git = "https://github.com/bodil/typed-html"}
+typed-html = {features = ["dodrio_macro"], git = "https://github.com/bodil/typed-html", optional = true}
 wasm-bindgen-futures = "0.4.18"
 
 async-trait = "0.1.41"
@@ -48,5 +48,5 @@ gloo = "0.2.1"
 wasm-bindgen-test = "0.3.18"
 
 [features]
-default = ["console_error_panic_hook"]
+default = ["console_error_panic_hook", "typed-html"]
 release = ["console_error_panic_hook", "wee_alloc"]
