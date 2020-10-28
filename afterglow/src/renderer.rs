@@ -23,12 +23,12 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, cx, &self.sender)
         } else {
-            if cfg!(feature = "html-macro") {
-                dodrio!(bump, <template></template>)
-            } else {
-                dodrio::builder::template(bump).finish()
+            #[cfg(feature = "html-macro")]
+            {
+                html!(bump, <template></template>)
             }
-                
+
+            dodrio::builder::template(bump).finish()
         }
     }
 }
@@ -60,8 +60,8 @@ mod tests {
             let state = bf!(in bump, "{}", &target.state).into_bump_str();
 
             match self {
-                Device::pc => dodrio!(bump, <div class={state}>"I'm on pc"</div>),
-                Device::mobile => dodrio!(bump, <div class={state}>"I'm on mobile"</div>),
+                Device::pc => html!(bump, <div class={state}>"I'm on pc"</div>),
+                Device::mobile => html!(bump, <div class={state}>"I'm on mobile"</div>),
             }
         }
     }

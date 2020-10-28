@@ -153,11 +153,12 @@ where
         if let Some(data) = self.data.try_lock() {
             self.renderer.view(&*data, ctx, &self.sender.clone())
         } else {
-            if cfg!(feature = "html-macro") {
-                dodrio!(bump, <template></template>)
-            } else {
-                dodrio::builder::template(bump).finish()
-            }        
+            #[cfg(feature = "html-macro")]
+            {
+                html!(bump, <template></template>)
+            }
+
+            dodrio::builder::template(bump).finish()
         }
     }
 }
@@ -381,7 +382,7 @@ pub mod tests {
             use dodrio::builder::text;
             let bump = ctx.bump;
             let value = bf!(in bump, "value in box {}", &target.status).into_bump_str();
-            dodrio!(bump,
+            html!(bump,
                 <div class="box">
                 { vec![text(value)] }
                 <div class="button"
@@ -408,7 +409,7 @@ pub mod tests {
             use dodrio::builder::text;
             let bump = ctx.bump;
             let value = bf!(in bump, "value in card {}", &target.status).into_bump_str();
-            dodrio!(bump,
+            html!(bump,
                 <div class="card">
                     <div class="card-header">
                         <p class="card-header-title">"this is a card"</p>
@@ -449,7 +450,7 @@ pub mod tests {
                 })
                 .flatten();
 
-            dodrio!(bump,
+            html!(bump,
                 <div class="card">
                 { card_view }
                 // { box_view }
