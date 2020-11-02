@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use async_trait::*;
-pub type Render<T, D> = Box<dyn Renderer<Target = T, Data = D>>;
+
+pub(crate) type Render<T, D> = Box<dyn Renderer<Target = T, Data = D>>;
 
 pub trait Renderer {
     type Target;

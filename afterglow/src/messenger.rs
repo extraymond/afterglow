@@ -2,7 +2,7 @@ use crate::prelude::*;
 use async_std::task;
 use dodrio::{RootRender, VdomWeak};
 
-pub type Message<T> = Box<dyn Messenger<Target = T>>;
+pub(crate) type Message<T> = Box<dyn Messenger<Target = T>>;
 pub type MessageSender<T> = Sender<(Message<T>, oneshot::Sender<()>)>;
 pub type MessageReceiver<T> = Receiver<(Message<T>, oneshot::Sender<()>)>;
 
@@ -24,12 +24,12 @@ pub trait Messenger {
         Self: Sized + 'static,
     {
         let mut sender = sender.clone();
-        let task = task::spawn_local(async move {
+
+        task::spawn_local(async move {
             let (tx, rx) = oneshot::channel::<()>();
             let _ = sender.send((Box::new(self), tx)).await;
             let _ = rx.await;
-        });
-        task
+        })
     }
 }
 

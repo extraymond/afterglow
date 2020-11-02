@@ -40,6 +40,12 @@ pub trait LifeCycle {
     }
 }
 
+impl LifeCycle for () {
+    fn new(render_tx: Sender<((), oneshot::Sender<()>)>) -> Self {
+        ()
+    }
+}
+
 impl<T> Drop for Container<T>
 where
     T: LifeCycle,
