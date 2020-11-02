@@ -3,11 +3,12 @@ use futures::lock::Mutex;
 use futures::prelude::*;
 use std::rc::Rc;
 
+pub type MsgSenders<T> = Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>;
 /// A bus that can be subscribed to.
 pub struct Bus<T> {
     pub sender: Sender<T>,
     pub subs_tx: Sender<Sender<(T, oneshot::Sender<()>)>>,
-    pub txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
+    pub txs: MsgSenders<T>,
 }
 
 /// A sharable bus for containers to consume
@@ -54,8 +55,8 @@ impl<T: Clone + 'static> BusService<T> {
     }
 }
 
-impl<T: Clone + 'static> Bus<T> {
-    pub fn new() -> Self {
+impl<T: Clone + 'static> Default for Bus<T> {
+    fn default() -> Self {
         let (sender, rx) = mpsc::unbounded::<T>();
         let (subs_tx, subs_rx) = mpsc::unbounded::<Sender<(T, oneshot::Sender<()>)>>();
         let txs = Rc::new(Mutex::new(vec![]));
@@ -69,11 +70,17 @@ impl<T: Clone + 'static> Bus<T> {
             txs,
         }
     }
+}
+
+impl<T: Clone + 'static> Bus<T> {
+    pub fn new() -> Self {
+        Bus::default()
+    }
 
     /// listen for incoming registration, register by adding it's sender into Vec<Sender>
     pub async fn handle_register(
         mut rx: Receiver<Sender<(T, oneshot::Sender<()>)>>,
-        txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
+        txs: MsgSenders<T>,
     ) {
         while let Some(tx) = rx.next().await {
             let mut txs = txs.lock().await;
@@ -82,13 +89,10 @@ impl<T: Clone + 'static> Bus<T> {
     }
 
     /// listen for incoming mesages, proxy mesages to the members.
-    pub async fn handle_broadcast(
-        rx: Receiver<T>,
-        txs: Rc<Mutex<Vec<Sender<(T, oneshot::Sender<()>)>>>>,
-    ) {
+    pub async fn handle_broadcast(rx: Receiver<T>, txs: MsgSenders<T>) {
         rx.then(|msg| {
             let txs = txs.clone();
-            let msg = msg.clone();
+            let msg = msg;
             async move {
                 let txs = txs.lock().await;
                 if !txs.is_empty() {

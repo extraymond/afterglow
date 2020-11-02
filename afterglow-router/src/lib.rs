@@ -207,7 +207,7 @@ mod tests {
             let dummy = Container::new(
                 Dummy::new(render_tx.clone()),
                 Box::new(DummyView),
-                render_tx.clone(),
+                render_tx,
             );
             let dummy = Some(dummy);
 

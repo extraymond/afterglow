@@ -1,10 +1,6 @@
 use crate::prelude::*;
 use async_std::task;
-use async_trait::async_trait;
 use dodrio::{RootRender, VdomWeak};
-use futures::channel::mpsc::unbounded;
-use futures::lock::Mutex;
-use std::rc::Rc;
 
 pub type Message<T> = Box<dyn Messenger<Target = T>>;
 pub type MessageSender<T> = Sender<(Message<T>, oneshot::Sender<()>)>;
@@ -22,6 +18,7 @@ pub trait Messenger {
         false
     }
 
+    /// disptach a msg toward it's target.
     fn dispatch(self, sender: &MessageSender<Self::Target>) -> task::JoinHandle<()>
     where
         Self: Sized + 'static,
@@ -36,6 +33,7 @@ pub trait Messenger {
     }
 }
 
+/// convert a msg into a closure to satisfy dodrio's internal renderer
 pub fn consume<T, M>(
     convert: impl Fn(Event) -> M + 'static,
     sender: &MessageSender<T>,
@@ -54,6 +52,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use futures::channel::mpsc::unbounded;
+    use futures::lock::Mutex;
+    use std::rc::Rc;
 
     pub struct Data {
         button: bool,

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-
+use async_trait::*;
 pub type Render<T, D> = Box<dyn Renderer<Target = T, Data = D>>;
 
 pub trait Renderer {
@@ -26,6 +26,19 @@ where
             dodrio::builder::template(bump).finish()
         }
     }
+}
+
+#[async_trait]
+pub trait AsyncRenderer {
+    type Target;
+    type Data;
+
+    async fn view<'a>(
+        &self,
+        target: &Self::Target,
+        ctx: &mut RenderContext<'a>,
+        sender: &MessageSender<Self::Data>,
+    ) -> Node<'a>;
 }
 
 #[cfg(test)]

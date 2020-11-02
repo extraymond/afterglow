@@ -45,9 +45,9 @@ where
     T: LifeCycle,
 {
     fn drop(&mut self) {
-        self.data.try_lock().as_ref().map(|data| {
+        if let Some(data) = self.data.try_lock().as_ref() {
             data.destroyed(&self.sender, &self.render_tx);
-        });
+        }
     }
 }
 
@@ -89,7 +89,7 @@ where
             data: Rc::new(Mutex::new(data)),
             sender,
             renderer,
-            render_tx: render_tx.clone(),
+            render_tx,
             handlers: vec![],
         };
         <T as LifeCycle>::mounted(
@@ -151,7 +151,7 @@ where
     pub fn render<'a>(&self, ctx: &mut RenderContext<'a>) -> Node<'a> {
         let bump = ctx.bump;
         if let Some(data) = self.data.try_lock() {
-            self.renderer.view(&*data, ctx, &self.sender.clone())
+            self.renderer.view(&*data, ctx, &self.sender)
         } else {
             dodrio::builder::template(bump).finish()
         }
@@ -170,8 +170,8 @@ pub enum EntryMessage {
     Eject(oneshot::Sender<()>),
 }
 
-impl Entry {
-    pub fn new() -> Self {
+impl Default for Entry {
+    fn default() -> Self {
         let (render_tx, render_rx) = mpsc::unbounded::<((), oneshot::Sender<()>)>();
         let (msg_tx, msg_rx) = mpsc::unbounded::<EntryMessage>();
 
@@ -182,6 +182,12 @@ impl Entry {
             msg_rx: Some(msg_rx),
         }
     }
+}
+
+impl Entry {
+    pub fn new() -> Self {
+        Entry::default()
+    }
 
     fn handle_message<T: LifeCycle + 'static>(
         &mut self,
@@ -191,10 +197,10 @@ impl Entry {
     ) -> task::JoinHandle<()> {
         let rx = self.msg_rx.take().unwrap();
         let render_tx = self.render_tx.clone();
-        let root_container = Container::new(data, renderer, render_tx.clone());
+        let root_container = Container::new(data, renderer, render_tx);
         let vdom = Vdom::new(&block, root_container);
 
-        let handle = task::spawn_local(async move {
+        task::spawn_local(async move {
             log::trace!("start handling entry");
 
             let vdom = vdom;
@@ -218,8 +224,7 @@ impl Entry {
             })
             .await;
             log::trace!("ejected");
-        });
-        handle
+        })
     }
 
     fn handle_render(&mut self) -> task::JoinHandle<()> {
@@ -292,7 +297,7 @@ impl Entry {
                     }
                 }
             })
-            .unwrap_or(doc.body().unwrap().unchecked_into::<web_sys::HtmlElement>());
+            .unwrap_or_else(|| doc.body().unwrap().unchecked_into::<web_sys::HtmlElement>());
 
         let data = T::new(entry.render_tx.clone());
         entry.mount_vdom(data, &block, Box::new(R::default()));
