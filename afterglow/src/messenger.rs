@@ -2,7 +2,7 @@ use crate::prelude::*;
 use async_std::task;
 use dodrio::{RootRender, VdomWeak};
 
-pub(crate) type Message<T> = Box<dyn Messenger<Target = T>>;
+pub type Message<T> = Box<dyn Messenger<Target = T>>;
 pub type MessageSender<T> = Sender<(Message<T>, oneshot::Sender<()>)>;
 pub type MessageReceiver<T> = Receiver<(Message<T>, oneshot::Sender<()>)>;
 

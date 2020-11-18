@@ -13,3 +13,4 @@ mod tests {
         let _ = femme::with_level(log::LevelFilter::Info);
     }
 }
+
