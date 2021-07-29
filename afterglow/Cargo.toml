@@ -22,7 +22,7 @@ wasm-bindgen-futures = "0.4.18"
 async-std = {version = "1.6.5", features = ["unstable"]}
 async-trait = "0.1.41"
 futures = "0.3.7"
-gloo = "0.2.1"
+gloo = "0.3.0"
 js-sys = "0.3.45"
 log = "0.4.11"
 
@@ -32,5 +32,5 @@ version = "0.3.45"
 
 [dev-dependencies]
 femme = "2.1.1"
-gloo = "0.2.1"
+gloo = "0.3.0"
 wasm-bindgen-test = "0.3.18"
